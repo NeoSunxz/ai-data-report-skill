@@ -43,3 +43,7 @@ To see it first, open [`examples/demo.html`](examples/demo.html) in a browser. I
 - Each chart has a row limit (for example 15 bars, 4 lines), so large data is summarized first.
 - Text uses the fonts on your computer, so letter shapes differ slightly between machines.
 - The page runs only in your browser and never uploads your data.
+
+## License
+
+[MIT](LICENSE) © NeoSun

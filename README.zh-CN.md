@@ -41,3 +41,7 @@ cp -r excel-charts-skill/skills/excel-charts ~/.claude/skills/
 - 每种图有行数上限（比如条形图最多 15 行、折线图最多 4 条线），数据多时要先汇总。
 - 图里的文字用电脑自带字体，不同电脑上字形略有差别。
 - 网页只在你的浏览器里运行，数据不会上传。
+
+## 开源协议
+
+[MIT](LICENSE) © NeoSun

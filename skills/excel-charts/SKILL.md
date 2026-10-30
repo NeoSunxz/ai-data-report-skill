@@ -1,5 +1,6 @@
 ---
 name: excel-charts
+license: MIT
 description: Turn data from Excel, CSV or a pasted table into report-ready chart images (3:4 for phones, 16:9 for slides), or combine several charts into a one-page dashboard. 11 chart types — bar, column, line, donut, stacked column, waterfall, KPI cards, dumbbell, waffle, bullet, calendar heatmap — in 3 color themes. Use when the user says "make a chart", "chart this", "charts for my report", "build a dashboard" or "analyze this spreadsheet". Works for people new to data: it asks what they want to see first, then cleans the data and draws.
 ---
 
