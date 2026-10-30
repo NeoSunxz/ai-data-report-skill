@@ -1,28 +1,29 @@
 ---
 name: excel-charts
 license: MIT
-description: Turn data from Excel, CSV or a pasted table into report-ready chart images (3:4 for phones, 16:9 for slides), or combine several charts into a one-page dashboard. 11 chart types — bar, column, line, donut, stacked column, waterfall, KPI cards, dumbbell, waffle, bullet, calendar heatmap — in 3 color themes. Use when the user says "make a chart", "chart this", "charts for my report", "build a dashboard" or "analyze this spreadsheet". Works for people new to data: it asks what they want to see first, then cleans the data and draws.
+description: Turn data from Excel, CSV or a pasted table into report-ready charts, one-page dashboards, printable reports and HTML slide decks. 11 chart types (bar, column, line, donut, stacked column, waterfall, KPI cards, dumbbell, waffle, bullet, calendar heatmap) in 3 color themes or the colors of the user's own template. Use when the user has data and says "make a chart", "chart this", "build a dashboard", "write a report on this data", "turn this spreadsheet into slides" or "analyze this spreadsheet". Works alongside other presentation skills and templates: it supplies the storyline and the charts and leaves the deck's design to them. Works for people new to data: it asks what they want to see first, then cleans the data.
 ---
 
-# excel-charts: report-ready charts and dashboards from a spreadsheet
+# excel-charts: charts, dashboards, reports and slides from a spreadsheet
 
-How it works: find out what the user wants to see → read and clean the data → pick charts → turn the data into JSON → drop it into the web page template at the end of this file to create one HTML file → the user opens it in a browser and clicks to download PNGs.
+How it works: find out what the user wants → read and clean the data → pick charts → choose the output (charts, dashboard, report or slides) → fill in one `DOC` object → drop it into the web page template at the end of this file → the user opens one HTML file in a browser.
 
 The user may know nothing about data. Use plain words throughout. Don't say "dimension", "measure", "aggregate" or "field"; say "by store", "added up", "this column".
 
-All drawing code is in the template. Nothing is downloaded or installed. **In the template, change only the `CHARTS` line.** Don't touch anything else.
+All drawing code is in the template. Nothing is downloaded or installed. **In the template, change only the `var DOC = {};` line.** Don't touch anything else.
 
-## 0. Find out what they want to see
+## 0. Find out what they want
 
-If the request is specific ("make a bar chart of sales by store"), skip this step and do it.
+If the request is specific ("make a bar chart of sales by store", "turn this into 6 slides"), skip the questions and do it.
 
-If the user only says "build me a dashboard" or "analyze this spreadsheet", look at the data first, then ask these 3 questions **in one message**. For each, offer options guessed from the data so the user can just pick or adjust:
+If the user only says "build me a dashboard", "make a report" or "analyze this spreadsheet", look at the data first, then ask these questions **in one message**. For each, offer options guessed from the data so the user can just pick or adjust:
 
-1. **Who is it for?** For example: just me / a report for my manager / a team chat. This decides a one-page dashboard or separate charts, 16:9 or a long phone image.
+1. **Who is it for, and how will they see it?** For example: a slide deck for a meeting / a report to send around / a dashboard image for a chat / charts to paste into my own slides. This picks the output (section 3).
 2. **Which numbers matter most?** Pick 2–4 from the data, for example "sales, cups sold, average ticket".
 3. **Compared with what?** For example: last year / the target / last month / nothing. If the data has nothing to compare with, say so. Don't make it up.
+4. **Only if they want slides:** are they already using a slide template or another presentation skill (such as frontend-slides)? If yes, follow section 6.
 
-If the user says "up to you" or "I don't know", use the default **business dashboard**: a row of KPI cards (key numbers vs. the comparison period) + a trend (by month) + a ranking (by store, product or person) + a breakdown (shares). When done, tell the user which question each part answers and that any part they don't need can be removed.
+If the user says "up to you" or "I don't know", use the default **business review**: KPI cards (key numbers vs. the comparison period) + a trend (by month) + a ranking (by store, product or person) + a breakdown (shares). Tell the user which question each part answers and that any part they don't need can be removed.
 
 ## 1. Read and clean the data. Never invent numbers
 
@@ -44,7 +45,7 @@ Spreadsheets made by people new to data often have the problems below. Fix them 
 | Blank rows, stray spaces, duplicate rows | Skip blank rows; for identical rows, ask whether they're a double entry | "2 rows are exactly the same. Count them once?" |
 | Missing data (a month with no numbers) | Don't fill it. Line charts break there, column charts skip that column; say so | "There's no data for July, so that spot is empty" |
 
-## 2. Pick the chart
+## 2. Pick the charts
 
 First decide what question the chart answers, then pick the chart. If the user names a chart, use it.
 
@@ -69,23 +70,61 @@ A few rules:
 - Two sets of numbers in different units (such as sales and cups sold) go in two charts. Don't force them into one.
 - With only 1–2 numbers, use KPI cards instead of a chart.
 
-## 3. Turn the data into JSON
+## 3. Choose the output
 
-`CHARTS` is an array; each element is one chart. Every chart has these fields:
+| The user wants | `DOC.mode` | What they get |
+|---|---|---|
+| Chart images to post or paste | `charts` | Each chart as a 3:4 PNG (phones), a 16:9 PNG (slides), and "chart only", a transparent PNG that fits any template, including PowerPoint, Keynote and Google Slides |
+| A dashboard image | `charts` with one `dashboard` chart | One page with KPI cards and 2–6 charts, as 16:9 or a long phone image |
+| A report to read or send | `report` | One long web page: title, key findings, one section per chart with its explanation, and notes on the data. Prints neatly to A4 PDF |
+| A slide deck, no template of their own | `slides` | An HTML deck (16:9, arrow keys to move, F for full screen, prints one slide per PDF page) in the 3 built-in themes |
+| A slide deck in their own template or another slide skill | see section 6 | The storyline and charts in that deck's colors; the deck's look stays theirs |
+
+### Write the story first (report and slides)
+
+Before filling in `DOC`, write the storyline as a list: one line per section, each a **finding**, not a label ("December was the best month", not "Monthly sales"). Order: the overall picture first, then the biggest finding, then the details, then what to watch. 4–8 sections is plenty. Each section has one chart and 0–4 short points. Points say what the chart shows, with numbers from the data; no guessed reasons.
+
+## 4. Fill in `DOC`
+
+`DOC` is one object. Fields for every mode:
 
 | Field | Required | Notes |
 |---|---|---|
-| `kind` | yes | The name from the table above |
-| `title` | yes | The big title. A finding beats a label: "Delivery is catching up with dine-in" beats "Dine-in and delivery cups". Keep it under about 35 characters: longer titles are set smaller, then cut off |
-| `subtitle` | no | Small text for the unit, time range or how it's calculated, for example "2025, in $ thousands". About 50 characters |
-| `rows` | yes | The data; see each chart below for the format |
-| `theme` | no | Color theme: `latte` Oat Latte (default), `mist` Mist Blue, `navy` Midnight Navy (dark). It can also be switched with one click on the page |
-| `file` | no | Download file name without extension, for example `sales-by-store` |
-| `sign` | no | A credit line in the bottom-left corner, for example `"Store Ops Team"`. Not shown if left out |
-| `unit` | no | A short unit placed after each value, for example `"k"` or `"%"`. Put longer units in the subtitle |
-| `lang` | no | Language of the text built into the chart (legends, "Total", month names): `"en"` by default; use `"zh"` when the user writes in Chinese. Write titles, subtitles and names in the user's language too |
+| `mode` | yes | `charts`, `report` or `slides` |
+| `title` | yes | Page, report or deck title |
+| `subtitle` | no | One line under the title |
+| `author`, `date` | no | Shown under the title (report) or on the cover (slides) |
+| `theme` | no | `latte` Oat Latte (default), `mist` Mist Blue, `navy` Midnight Navy (dark), or an object with custom colors (section 6). Charts and reports also get buttons to switch |
+| `lang` | no | Language of the text built into the charts and page (legends, "Total", month names, buttons): `"en"` by default; use `"zh"` when the user writes in Chinese. Write titles, subtitles and names in the user's language too |
+| `sign` | no | A credit line, for example `"Store Ops Team"`. Not shown if left out |
 
-Keep category names short (about 12 characters or fewer): on a crowded axis, long names get small text or only every other one is shown. Values can be numbers or numeric strings (`33.6`, `"33.6"`, `"1,280"`). The `rows` format and extra fields for each chart:
+**`charts` mode**: `DOC.charts` is an array of charts.
+```json
+{"mode": "charts", "title": "Sales charts", "charts": [{"kind": "bar", "title": "...", "rows": [...]}, {"kind": "dashboard", "title": "...", "panels": [...]}]}
+```
+
+**`report` and `slides` modes**: `DOC.summary` is 2–4 key findings (one sentence each); `DOC.sections` is the storyline, one chart per section; `DOC.notes` says where the data came from and how it was summarized. Each section is a chart object (formats below) plus:
+- `title`: the finding, shown as the section heading or the slide headline. On slides keep it to one line (about 45 characters).
+- `subtitle`: the unit and time range, for example "Monthly sales, $ thousands".
+- `points`: 0–4 short sentences shown next to the chart (slides) or under it (report). On slides, 2–3 points of under 60 characters each read best.
+- `text`: (report only) a short paragraph instead of, or before, the points.
+- `kind: "text"`: a section with points and no chart.
+- In `slides` mode, `DOC.kicker` is a small label above the title on the cover, for example "Annual review"; `section.kicker` does the same on a slide.
+
+```json
+{"mode": "slides", "title": "2025 coffee shop review", "subtitle": "Sales, stores and channels across 6 stores", "author": "NeoSun", "date": "2026-01-15",
+ "summary": ["Sales grew 5.2% to $215.3k, driven by more cups sold", "Delivery more than doubled and is catching up with dine-in"],
+ "sections": [
+  {"kind": "column", "title": "December was the best month", "subtitle": "Monthly sales, $ thousands", "rows": [{"name": "Jan", "a": 15.2}, {"name": "Feb", "a": 12.1}],
+   "points": ["$24.0k in December, the highest of the year", "February was the low point at $12.1k"]},
+  {"kind": "bar", "title": "Tech Park and Riverside lead", "subtitle": "2025 sales by store, $ thousands", "rows": [{"name": "Tech Park", "a": 46.9}, {"name": "Riverside", "a": 45.7}]}
+ ],
+ "notes": ["Made-up data for 6 stores", "Sales are summed by month and by store from daily sales"]}
+```
+
+### Chart formats
+
+Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `rows`. Optional: `unit` (a short unit after each value, such as `"k"` or `"%"`; longer units go in the subtitle) and `file` (download file name in `charts` mode). Keep category names short (about 12 characters or fewer): on a crowded axis, long names get small text or only every other one is shown. Values can be numbers or numeric strings (`33.6`, `"33.6"`, `"1,280"`). In `charts` mode the title is drawn on the image: about 35 characters fit, longer titles are set smaller, then cut off.
 
 **Bar chart `bar`**: `rows: [{name, a}]`. Sorted from largest to smallest automatically, up to 15 rows. `highlight: "Riverside"` highlights only that row and greys out the rest.
 ```json
@@ -153,7 +192,7 @@ Keep category names short (about 12 characters or fewer): on a crowded axis, lon
  "rows": [{"name": "2025-01-01", "a": 5120}, {"name": "2025-01-02", "a": 4380}]}
 ```
 
-**Dashboard `dashboard`**: puts 2–7 charts on one page. Each item in `panels` is a chart, written exactly like the single charts above (`theme`, `file`, `sign` and `lang` go on the dashboard only).
+**Dashboard `dashboard`**: puts 2–7 charts on one page. Each item in `panels` is a chart, written exactly like the single charts above (`theme`, `file`, `sign` and `lang` go on the dashboard only, or on `DOC` when it sits in `DOC.charts`).
 - When the first panel is KPI cards, it takes the whole top row; leave out its `title` in that case.
 - The other charts: 2–3 per row in 16:9, up to two rows; one per row, stacked down, in the long phone image.
 - Panels are smaller than single charts, so keep each `title` short (about 20 characters) and put units in the `subtitle`.
@@ -169,25 +208,62 @@ Keep category names short (about 12 characters or fewer): on a crowded axis, lon
  ]}
 ```
 
-## 4. Create the page
 
-1. Write the whole HTML from "Template" at the end of this file into a file as is, for example `charts.html`, in the user's working folder.
-2. Replace only `var CHARTS = [];` with your array, for example `var CHARTS = [{...}, {...}];`. Don't change anything else, and don't trim the drawing code.
-3. Tell the user: open the file in a browser (Chrome or Edge). Each chart has "Download 3:4 PNG" and "Download 16:9 PNG" buttons (a dashboard has "Download 16:9 PNG" and "Download phone (long) PNG"); the buttons at the top switch between the 3 themes.
-4. If you can run a headless browser (such as Playwright), you can export the PNGs yourself: open the page and call `toDataURL('image/png')` on each `<canvas>` (ids are `chart-<n>-3x4` / `chart-<n>-16x9` / `chart-<n>-long`), then save the files. Look at the images after exporting.
+## 5. Create the page
 
-## 5. Explain what you delivered
+1. Write the whole HTML from "Template" at the end of this file (the last code block; the snippet in section 6 is something else) into a file as is, for example `charts.html`, `report.html` or `slides.html`, in the user's working folder.
+2. Replace only `var DOC = {};` with your object, for example `var DOC = {"mode": "report", ...};`. Don't change anything else, and don't trim the drawing code.
+3. Tell the user how to use it:
+   - `charts`: open in Chrome or Edge; every chart has download buttons; the buttons at the top switch the theme.
+   - `report`: open in a browser; "Print / save as PDF" at the top makes an A4 PDF.
+   - `slides`: open in a browser; ← → or click to move, F for full screen; print to save as PDF, one slide per page.
+4. If you can run a headless browser (such as Playwright), check the result yourself before handing it over: open the page, look at every chart (and every slide), and fix text that is cut off or crowded. You can also export PNGs by calling `toDataURL('image/png')` on each `<canvas>`; ids are `chart-<n>-3x4`, `chart-<n>-16x9`, `chart-<n>-chart` (transparent) and `chart-<n>-long` in `charts` mode, and `chart-<n>` in reports and slides.
 
-Give the user a table with one row per chart (for a dashboard, one per panel): chart name, the question it answers, the columns used, and how they were summarized ("raw data" if not summarized). Also list anything cut or merged (rows over the limit, categories merged into "Other") and anything cleaned up in step 1.
+## 6. Working with other slide skills and templates
+
+Other presentation skills (such as frontend-slides) and the user's own templates own the look of their decks. **Don't restyle their slides, don't add your CSS, fonts or navigation to their deck, and don't replace their layout.** Your job there is the content: the storyline (section 3) and the charts, drawn in the deck's colors.
+
+1. **Agree who builds the deck.** If another slide skill is in use, give it the storyline as a list: for each slide, the headline (the finding), the chart, and 2–3 points. Let it build the slides, then add the charts as below.
+2. **Read the deck's colors and font.** From the deck's CSS variables or the template's theme, take: the background behind the chart (`card`), the main text color (`ink`), a muted text color (`ink2`), the accent color (`acc`), up to 6 other colors for categories (`cats`) and the body font (`font`). Use hex colors like `#1A1A2E`. Only `card`, `ink` and `acc` are required; the rest are worked out from them.
+3. **HTML decks: embed the charts.** Copy the drawing code from the template, everything from `/* ===== CHARTS_JS START ===== */` to `/* ===== CHARTS_JS END ===== */`, into one `<script>` near the end of their file, unchanged. Put a canvas where each chart goes, then add the loader once:
+```html
+<canvas class="xc-chart" width="1950" height="1050" style="width:100%;height:auto"
+  data-chart='{"kind":"line","series":["Dine-in","Delivery"],"rows":[{"name":"Q1","v":[21,10]},{"name":"Q2","v":[22,14]}]}'></canvas>
+
+<script>/* drawing code from the template, CHARTS_JS START to CHARTS_JS END */</script>
+<script>
+(function () {
+  var theme = { card: "#14121F", ink: "#F4F1EA", ink2: "#9C97B0", acc: "#FF6B4A", font: "Georgia" };
+  function drawAll() {
+    Array.prototype.forEach.call(document.querySelectorAll("canvas.xc-chart"), function (cv) {
+      var c = JSON.parse(cv.getAttribute("data-chart"));
+      Charts[c.kind](cv.getContext("2d"), c, { bare: true, theme: c.theme || theme, lang: c.lang || "en", fontScale: 1.3 });
+    });
+  }
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(drawAll);
+})();
+</script>
+```
+   - `bare: true` draws only the chart: no title (the slide has its headline), no card, a transparent background.
+   - Size the canvas at about 1.5× the space it takes on the slide, in the same proportions, so it stays sharp. `fontScale` makes the chart's text bigger for slides (1.3) or leaves it as is for documents (1).
+   - The drawing code adds one global, `Charts`. If the deck already has a global with that name, tell the user instead of renaming things in their file.
+   - Escape `'` inside `data-chart` as `&#39;`.
+4. **PowerPoint, Keynote, Google Slides or any other tool**: make a `charts` page with `DOC.theme` set to the template's colors, and use the "chart only" transparent PNGs. They drop onto any slide background.
+5. **Reports in someone else's format**: the same two routes work: embedded canvases with `fontScale: 1` for HTML, transparent PNGs for documents.
+
+## 7. Explain what you delivered
+
+Give the user a table with one row per chart (for a dashboard, one per panel; for a report or deck, one per section): the headline, the question it answers, the columns used, and how they were summarized ("raw data" if not summarized). Also list anything cut or merged (rows over the limit, categories merged into "Other") and anything cleaned up in step 1.
 
 End with one or two sentences on what stands out, based only on what the data shows ("December had the highest sales, $24k", "Delivery cups doubled over the year"). Don't guess at reasons.
 
-## 6. Limits
+## 8. Limits
 
-- Text in the charts uses the computer's built-in fonts, so letter shapes differ slightly between computers.
-- Each chart has a row limit (see section 3); anything beyond it isn't drawn. With a lot of data, summarize or filter first.
-- These are static images: no clicking or filtering, and they must be regenerated when the data changes. For a dashboard that filters and refreshes on its own, use a dedicated reporting tool.
+- Text uses the fonts on the computer (or the deck's font when given), so letter shapes differ slightly between machines.
+- Each chart has a row limit (see the chart formats); anything beyond it isn't drawn. With a lot of data, summarize or filter first.
+- Charts are static: no clicking or filtering, and pages must be regenerated when the data changes. For a dashboard that filters and refreshes on its own, use a dedicated reporting tool.
 - Values show at most one decimal place (two for KPI values under 10), with thousands separators above 1,000.
+- Built-in slides are deliberately plain: one headline, one chart, a few points. For animated or highly designed decks, use a dedicated presentation skill and section 6.
 
 ## Template
 
@@ -199,33 +275,101 @@ End with one or two sentences on what stands out, based only on what the data sh
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>excel-charts</title>
 <style>
-  body { margin: 0; background: #EFEBE5; color: #2D2A26; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
-  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .lead { color: #8C857B; font-size: 14px; margin: 0 0 14px; }
-  .themes { margin: 0 0 20px; font-size: 14px; color: #6E675E; }
-  .themes button { margin: 0 6px 6px 0; padding: 6px 12px; border: 1px solid #DCD4C8; border-radius: 8px; background: transparent; color: #6E675E; font-size: 14px; cursor: pointer; }
-  .themes button.on { background: #FBF9F6; color: #2D2A26; font-weight: 700; border-color: #2A669F; }
-  figure { margin: 0 0 28px; background: #FBF9F6; border-radius: 14px; padding: 16px; }
+  :root { --bg: #EFEBE5; --card: #FBF9F6; --ink: #2D2A26; --ink2: #8C857B; --rule: #E4DDD3; --acc: #2A669F;
+    --font: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  button { font-family: inherit; }
+  .bar { margin: 0 0 20px; font-size: 14px; color: var(--ink2); }
+  .bar button { margin: 0 6px 6px 0; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 8px; background: transparent; color: var(--ink2); font-size: 14px; cursor: pointer; }
+  .bar button.on { background: var(--card); color: var(--ink); font-weight: 700; border-color: var(--acc); }
+  .bar .print { background: var(--acc); color: #fff; border-color: var(--acc); }
+
+  /* ---- charts mode ---- */
+  .gallery { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  .gallery h1 { font-size: 20px; margin: 0 0 4px; }
+  .lead { color: var(--ink2); font-size: 14px; margin: 0 0 14px; }
+  figure { margin: 0 0 28px; background: var(--card); border-radius: 14px; padding: 16px; }
   figcaption { font-weight: 700; margin-bottom: 12px; }
   .pair { display: flex; flex-wrap: wrap; align-items: flex-start; }
   .pair > div { margin: 0 16px 12px 0; }
-  canvas { display: block; border-radius: 8px; box-shadow: 0 4px 14px rgba(60,40,20,.12); }
+  .pair canvas { display: block; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
   .c34 { width: 300px; } .c169 { width: 640px; max-width: 100%; }
-  .dl { margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 8px; background: #2A669F; color: #fff; font-size: 14px; cursor: pointer; }
+  .cbare { width: 480px; max-width: 100%; background: repeating-conic-gradient(var(--rule) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+  .dl { margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--acc); color: #fff; font-size: 14px; cursor: pointer; }
+
+  /* ---- report mode ---- */
+  .report { max-width: 880px; margin: 0 auto; padding: 40px 24px 64px; }
+  .report header { border-bottom: 3px solid var(--acc); padding-bottom: 20px; margin-bottom: 28px; }
+  .report h1 { font-size: 34px; line-height: 1.25; margin: 0 0 8px; }
+  .report .sub { font-size: 17px; color: var(--ink2); margin: 0; }
+  .report .meta { font-size: 13px; color: var(--ink2); margin-top: 10px; }
+  .findings { background: var(--card); border-left: 4px solid var(--acc); border-radius: 10px; padding: 18px 22px; margin: 0 0 32px; }
+  .findings h2, .notes h2 { font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink2); margin: 0 0 10px; }
+  .findings ol { margin: 0; padding-left: 22px; font-size: 17px; line-height: 1.6; }
+  .sec { background: var(--card); border-radius: 14px; padding: 24px 24px 18px; margin: 0 0 24px; break-inside: avoid; page-break-inside: avoid; }
+  .sec h2 { font-size: 22px; line-height: 1.3; margin: 0 0 4px; }
+  .sec .unit { font-size: 13px; color: var(--ink2); margin: 0 0 12px; }
+  .sec canvas { display: block; width: 100%; height: auto; }
+  .sec p, .sec ul { font-size: 16px; line-height: 1.65; margin: 12px 0 0; }
+  .sec ul { padding-left: 20px; }
+  .notes { font-size: 14px; color: var(--ink2); line-height: 1.6; margin-top: 32px; }
+  .notes ul { padding-left: 20px; margin: 0; }
+  .foot { font-size: 12px; color: var(--ink2); margin-top: 28px; }
+  @media print {
+    @page { size: A4; margin: 14mm; }
+    body { background: #fff; }
+    .no-print { display: none !important; }
+    .report { max-width: none; padding: 0; }
+  }
+
+  /* ---- slides mode: fixed 1920x1080 stage, scaled to the window ---- */
+  body.deck { overflow: hidden; background: #000; }
+  .stage-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; }
+  .stage { position: relative; width: 1920px; height: 1080px; flex: none; transform-origin: center center; }
+  .slide { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; background: var(--bg); padding: 96px 120px; visibility: hidden; opacity: 0; transition: opacity .35s ease; overflow: hidden; }
+  .slide.active { visibility: visible; opacity: 1; }
+  .slide .kicker { font-size: 24px; font-weight: 700; color: var(--acc); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 18px; }
+  .slide h1 { font-size: 104px; line-height: 1.08; margin: 0; max-width: 1500px; }
+  .slide h2 { font-size: 60px; line-height: 1.15; margin: 0; max-width: 1680px; }
+  .slide .unit { font-size: 26px; color: var(--ink2); margin-top: 12px; }
+  .slide .cover-sub { font-size: 40px; color: var(--ink2); margin-top: 32px; max-width: 1400px; line-height: 1.35; }
+  .slide .cover-meta { position: absolute; left: 120px; bottom: 96px; font-size: 26px; color: var(--ink2); }
+  .slide .rulebar { width: 160px; height: 10px; background: var(--acc); border-radius: 5px; margin-bottom: 56px; }
+  .slide .body { position: absolute; left: 120px; right: 120px; top: 300px; bottom: 110px; display: flex; align-items: stretch; }
+  .slide .chartbox { flex: 1; min-width: 0; background: var(--card); border-radius: 28px; padding: 28px; display: flex; align-items: center; justify-content: center; }
+  .slide .chartbox canvas { display: block; max-width: 100%; max-height: 100%; }
+  .slide .side { width: 520px; flex: none; margin-left: 56px; display: flex; flex-direction: column; justify-content: center; }
+  .slide .side.wide { width: auto; flex: 1; margin-left: 0; }
+  .slide .side ul { margin: 0; padding: 0; list-style: none; }
+  .slide .side li { font-size: 32px; line-height: 1.4; padding: 0 0 28px 30px; position: relative; }
+  .slide .side li::before { content: ""; position: absolute; left: 0; top: 16px; width: 12px; height: 12px; border-radius: 50%; background: var(--acc); }
+  .slide .big { margin: 64px 0 0; padding: 0; list-style: none; counter-reset: k; }
+  .slide .big li { font-size: 44px; line-height: 1.35; margin-bottom: 40px; padding-left: 96px; position: relative; counter-increment: k; max-width: 1560px; }
+  .slide .big li::before { content: counter(k); position: absolute; left: 0; top: -2px; width: 64px; height: 64px; border-radius: 50%; background: var(--acc); color: #fff; font-size: 34px; font-weight: 700; text-align: center; line-height: 64px; }
+  .slide .notes-list { margin: 56px 0 0; padding-left: 36px; font-size: 30px; line-height: 1.55; color: var(--ink2); max-width: 1600px; }
+  .slide .pageno { position: absolute; right: 120px; bottom: 48px; font-size: 22px; color: var(--ink2); }
+  .slide .sign { position: absolute; left: 120px; bottom: 48px; font-size: 22px; color: var(--ink2); }
+  .progress { position: fixed; left: 0; bottom: 0; height: 4px; background: var(--acc); transition: width .3s; z-index: 3; }
+  .hint { position: fixed; right: 16px; top: 12px; font-size: 13px; color: #999; z-index: 3; }
+  @media (prefers-reduced-motion: reduce) { .slide, .progress { transition: none; } }
+  @media print {
+    @page { size: 1920px 1080px; margin: 0; }
+    body.deck { overflow: visible; background: var(--bg); }
+    .stage-wrap { position: static; display: block; }
+    .stage { transform: none !important; width: 1920px; height: auto; }
+    .slide { position: relative; visibility: visible; opacity: 1; page-break-after: always; break-after: page; }
+    .progress, .hint { display: none; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>excel-charts</h1>
-  <p class="lead" id="lead"></p>
-  <div class="themes" id="themes"></div>
-  <div id="list"></div>
-</main>
+<div id="app"></div>
 <script>
 /* ===== DATA: edit only this line ===== */
-var CHARTS = [];
+var DOC = {};
 /* ===== Drawing code below: do not edit ===== */
+/* ===== CHARTS_JS START ===== */
 /* 画图：哑铃图、华夫饼图、子弹图、日历热力图，加上条形、柱形、折线、环形、堆积柱形、瀑布图和数字卡。画布尺寸取自 canvas 本身：1080×1440（小红书 3:4）为基准，
    其他尺寸（如 1920×1080 的 PPT 16:9）按比例 s 缩放。只用 Canvas 2D，ES2017。
    小工具和 excel-charts Skill 共用这一份代码，改这里两边一起变。 */
@@ -285,11 +429,64 @@ var CHARTS = [];
   var FONT_EN = '"Segoe UI","Helvetica Neue",Arial,' + FONT_ZH;
   var FONT = FONT_ZH;
 
+  // 十六进制颜色：#RGB 补成 #RRGGBB，不是十六进制就返回空
+  function hex6(c) {
+    var m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c || '').trim());
+    if (!m) return '';
+    var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
+    return '#' + h.toUpperCase();
+  }
+  function mixHex(c1, c2, t) {
+    var a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16), out = '#';
+    [16, 8, 0].forEach(function (sh) {
+      var x = (a >> sh) & 255, y = (b >> sh) & 255, v = Math.round(x + (y - x) * t);
+      out += (v < 16 ? '0' : '') + v.toString(16);
+    });
+    return out.toUpperCase();
+  }
+  function luma(c) {
+    var n = parseInt(c.slice(1), 16);
+    return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  }
+
+  // 自定义配色：theme 传对象时用，比如从别人的幻灯片模板里读出来的颜色。
+  // 只给 card（底色）、ink（文字）、acc（强调色）也行，其余按深浅从这几个推出来
+  function customTheme(o) {
+    var card0 = hex6(o.card) || hex6(o.bg);
+    var base = card0 && luma(card0) < 0.45 ? THEMES.navy : THEMES.latte;
+    var card = card0 || base.card, ink = hex6(o.ink) || base.ink;
+    var cats = (o.cats || []).map(hex6).filter(Boolean);
+    var acc = hex6(o.acc) || cats[0] || base.acc;
+    if (!cats.length || cats[0] !== acc) cats = [acc].concat(cats);
+    // 不够 6 个就从预设里补，跳过和已有颜色太像的
+    var dist = function (x, y) {
+      var a = parseInt(x.slice(1), 16), b = parseInt(y.slice(1), 16), d = 0;
+      [16, 8, 0].forEach(function (sh) { var k = ((a >> sh) & 255) - ((b >> sh) & 255); d += k * k; });
+      return Math.sqrt(d);
+    };
+    var pool = base.cats.concat(base === THEMES.navy ? THEMES.latte.cats : THEMES.navy.cats, THEMES.mist.cats);
+    [90, 60, 30, -1].forEach(function (lim) {
+      pool.forEach(function (c) {
+        if (cats.length < 6 && cats.every(function (x) { return dist(x, c) > lim && x !== c; })) cats.push(c);
+      });
+    });
+    return {
+      name: o.name || 'custom', bg: hex6(o.bg) || card, card: card, ink: ink,
+      ink2: hex6(o.ink2) || mixHex(card, ink, 0.6), rule: hex6(o.rule) || mixHex(card, ink, 0.12),
+      acc: acc, start: hex6(o.start) || mixHex(card, ink, 0.32), down: hex6(o.down) || base.down,
+      shadow: base.shadow, cats: cats.slice(0, 6),
+      bands: [mixHex(card, ink, 0.16), mixHex(card, ink, 0.09), mixHex(card, ink, 0.04)],
+      font: o.font ? String(o.font) : ''
+    };
+  }
+
   function useTheme(opt) {
-    C = THEMES[opt && opt.theme] || THEMES.latte;
+    var t = opt && opt.theme;
+    C = t && typeof t === 'object' ? customTheme(t) : THEMES[t] || THEMES.latte;
     var en = !!(opt && opt.lang === 'en');
     T = en ? TEXT.en : TEXT.zh;
     FONT = en ? FONT_EN : FONT_ZH;
+    if (C.font) FONT = C.font + ',' + FONT;
   }
 
   function font(size, weight) { return (weight || 400) + ' ' + (size * s) + 'px ' + FONT; }
@@ -330,6 +527,7 @@ var CHARTS = [];
   // 标题、副标题、卡片、署名：三种图共用。返回卡片内可画图的区域。
   function frame(ctx, opt) {
     if (opt.panel) return panelFrame(ctx, opt);
+    if (opt.bare) return bareFrame(ctx, opt);
     setup(ctx);
     useTheme(opt);
     ctx.fillStyle = C.bg;
@@ -1094,12 +1292,14 @@ var CHARTS = [];
   // ⑪ 数字卡：每行一个指标（名称、本期、对比期），最多 6 个；有对比期就写涨跌
   function kpi(ctx, d, opt) {
     var a = frame(ctx, opt);
+    // 只画图时画布往往很扁：字号按宽度定，别被高度压得太小
+    if (opt.bare) s = Math.max(s, Math.min(W / 1400 * (opt.fontScale || 1), a.h / 380));
     var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a), b: num(r.b), unit: r.unit || d.unit || '' }; })
       .filter(function (r) { return r.name && isFinite(r.v); }).slice(0, 6);
     if (!rows.length) return empty(ctx, a, opt);
 
     var wide = a.w > a.h * 1.2, n = rows.length;
-    var cols = d.cols ? Math.min(d.cols, n) : n === 1 ? 1 : wide ? Math.min(3, n) : 2, rowsN = Math.ceil(n / cols);
+    var cols = d.cols ? Math.min(d.cols, n) : n === 1 ? 1 : opt.bare && wide ? (n <= 3 ? n : a.w > a.h * 2.4 ? Math.min(n, 4) : Math.ceil(n / 2)) : wide ? Math.min(3, n) : 2, rowsN = Math.ceil(n / cols);
     var cw = a.w / cols, ch = Math.min(a.h / rowsN, u(wide ? 420 : 360));
     var gy = a.y + (a.h - ch * rowsN) / 2;
     ctx.strokeStyle = C.rule;
@@ -1148,6 +1348,17 @@ var CHARTS = [];
 
   /* ===== 看板：几张图拼成一页 ===== */
 
+  // 只画图：没有标题、卡片和背景（透明），用来放进报告、幻灯片或别人的模板里。
+  // 字号比例按 1200×750 算：1600×900 的图缩到幻灯片或报告的宽度时，字正好能看清
+  function bareFrame(ctx, opt) {
+    setup(ctx);
+    useTheme(opt);
+    s = Math.min(W / 1200, H / 750) * (opt.fontScale || 1);   // 幻灯片上离得远，可以把字放大
+    ctx.clearRect(0, 0, W, H);
+    var p = u(16);
+    return { x: p, y: p, w: W - p * 2, h: H - p * 2 };
+  }
+
   // 看板里的一个格子：卡片 + 左上角小标题，返回格子里能画图的区域。字号比例 s 由整页统一定，不随格子大小变
   function panelFrame(ctx, opt) {
     var p = opt.panel;
@@ -1183,7 +1394,7 @@ var CHARTS = [];
   // 排版：第一个格子是数字卡时单独占一整行；其余的图横版每行 2–3 个，长图每行 1 个。
   // 横版 1920×1080（PPT、投屏），长图宽 1080、高度按格子数算（手机）
   function dashLayout(d, W, H) {
-    var panels = (d.panels || []).filter(function (p) { return p && Charts[p.kind] && p.kind !== 'dashboard'; }).slice(0, 7);
+    var panels = (d.panels || []).filter(function (p) { return p && API[p.kind] && p.kind !== 'dashboard' && p.kind !== 'palette'; }).slice(0, 7);
     var wideMode = W > H, out = [];
     var kp = panels.length && panels[0].kind === 'kpi' ? panels[0] : null, rest = kp ? panels.slice(1) : panels;
     var nk = kp ? Math.min(6, (kp.rows || []).length) : 0;
@@ -1245,7 +1456,7 @@ var CHARTS = [];
     L.panels.forEach(function (it) {
       var p = it.p, dd = p;
       if (it.cols) { dd = {}; for (var key in p) dd[key] = p[key]; dd.cols = it.cols; }
-      Charts[p.kind](ctx, dd, { title: p.title, subtitle: p.subtitle, theme: opt.theme, lang: opt.lang, panel: it.r,
+      API[p.kind](ctx, dd, { title: p.title, subtitle: p.subtitle, theme: opt.theme, lang: opt.lang, panel: it.r,
         emptyText: opt.emptyText });
     });
     if (opt.sign) {
@@ -1265,83 +1476,267 @@ var CHARTS = [];
     ctx.fillText(opt.emptyText || T.empty, a.x + a.w / 2, a.y + a.h / 2);
   }
 
-  window.Charts = { dumbbell: dumbbell, waffle: waffle, bullet: bullet, calendar: calendar,
-    bar: bar, column: column, line: line, donut: donut, stacked: stacked, waterfall: waterfall, kpi: kpi,
-    dashboard: dashboard, dashboardHeight: dashboardHeight,
-    num: num, THEMES: THEMES, parseDate: parseDate, dateKey: dateKey };
-})();
-(function () {
-  var LANG = 'en';
-  var UI = {
-    zh: { lead: '每张图有两个尺寸：3:4 适合手机，16:9 适合放进 PPT。点按钮下载 PNG。', themes: '配色：', each: '按各图设置',
-      latte: '燕麦拿铁', mist: '雾霾蓝', navy: '深夜蓝', d34: '下载 3:4 PNG', d169: '下载 16:9 PNG', dlong: '下载手机长图 PNG',
-      empty: '没有可画的数据' },
-    en: { lead: 'Each chart comes in two sizes: 3:4 for phones, 16:9 for slides. Click a button to download the PNG.', themes: 'Theme: ',
-      each: 'As set per chart', latte: 'Oat Latte', mist: 'Mist Blue', navy: 'Midnight Navy', d34: 'Download 3:4 PNG',
-      d169: 'Download 16:9 PNG', dlong: 'Download phone (long) PNG', empty: 'No data to draw' }
-  }[LANG];
-  document.getElementById('lead').textContent = UI.lead;
-  document.getElementById('themes').textContent = UI.themes;
-  var SIZES = [{ key: '3x4', w: 1080, h: 1440, cls: 'c34', label: UI.d34 },
-               { key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 }];
-  var NAMES = { latte: UI.latte, mist: UI.mist, navy: UI.navy };
-  var theme = '';  // empty = each chart uses its own theme (Oat Latte if none)
-  var canvases = [];
-  var list = document.getElementById('list');
+  // 解析后的配色（预设名或自定义对象都行），给网页的 CSS 用
+  function palette(opt) { useTheme(opt || {}); return C; }
 
+  var API = { dumbbell: dumbbell, waffle: waffle, bullet: bullet, calendar: calendar,
+    bar: bar, column: column, line: line, donut: donut, stacked: stacked, waterfall: waterfall, kpi: kpi,
+    dashboard: dashboard, dashboardHeight: dashboardHeight, palette: palette,
+    num: num, THEMES: THEMES, parseDate: parseDate, dateKey: dateKey };
+  window.Charts = API;
+})();
+/* ===== CHARTS_JS END ===== */
+(function () {
+  var LANG = DOC.lang || 'en';
+  var UI = {
+    zh: { lead: '每张图有三种下载：3:4 适合手机，16:9 适合放进 PPT，「只下载图」是透明背景，可以放进任何模板。', themes: '配色：', each: '按各图设置',
+      latte: '燕麦拿铁', mist: '雾霾蓝', navy: '深夜蓝', custom: '自定义', d34: '下载 3:4 PNG', d169: '下载 16:9 PNG', dlong: '下载手机长图 PNG',
+      dbare: '只下载图（透明背景 PNG）', empty: '没有可画的数据', findings: '主要发现', notes: '数据说明', print: '打印 / 存成 PDF',
+      hint: '← → 翻页 · F 全屏 · 打印可存成 PDF', summary: '主要发现', about: '数据说明' },
+    en: { lead: 'Each chart downloads three ways: 3:4 for phones, 16:9 for slides, and "chart only" with a transparent background for any template.', themes: 'Theme: ',
+      each: 'As set per chart', latte: 'Oat Latte', mist: 'Mist Blue', navy: 'Midnight Navy', custom: 'Custom', d34: 'Download 3:4 PNG',
+      d169: 'Download 16:9 PNG', dlong: 'Download phone (long) PNG', dbare: 'Chart only (transparent PNG)', empty: 'No data to draw',
+      findings: 'Key findings', notes: 'About the data', print: 'Print / save as PDF', hint: '← → to move · F full screen · print to save as PDF',
+      summary: 'Key findings', about: 'About the data' }
+  }[LANG === 'en' ? 'en' : 'zh'];
+  var FONTS = LANG === 'en' ? '"Segoe UI", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif'
+                            : '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
+  var MODE = DOC.mode === 'report' || DOC.mode === 'slides' ? DOC.mode : 'charts';
+  var app = document.getElementById('app');
+  var theme = DOC.theme || '';     // a preset name, or an object with custom colors
+  var drawn = [];                  // canvases drawn so far, redrawn when the theme changes
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+  function setVars() {
+    var p = Charts.palette({ theme: theme || 'latte', lang: LANG }), r = document.documentElement.style;
+    r.setProperty('--bg', p.bg); r.setProperty('--card', p.card); r.setProperty('--ink', p.ink);
+    r.setProperty('--ink2', p.ink2); r.setProperty('--rule', p.rule); r.setProperty('--acc', p.acc);
+    r.setProperty('--font', (p.font ? p.font + ', ' : '') + FONTS);
+  }
   function draw(item) {
-    var c = item.c;
-    Charts[c.kind](item.cv.getContext('2d'), c, { title: c.title, subtitle: c.subtitle, sign: c.sign || false,
-      theme: theme || c.theme || 'latte', lang: c.lang || LANG, emptyText: UI.empty });
+    var c = item.c, k = c.kind;
+    if (!Charts[k] || k === 'palette') return;
+    Charts[k](item.cv.getContext('2d'), c, { title: item.bare ? '' : c.title, subtitle: item.bare ? '' : c.subtitle,
+      sign: item.bare ? false : (c.sign || DOC.sign || false), bare: !!item.bare, fontScale: MODE === 'slides' ? 1.3 : 1,
+      theme: (MODE === 'charts' ? theme || c.theme : theme) || 'latte', lang: c.lang || LANG, emptyText: UI.empty });
+  }
+  function canvas(c, w, h, bare, cls) {
+    var cv = el('canvas', cls);
+    cv.width = w; cv.height = h;
+    var item = { c: c, cv: cv, bare: bare };
+    drawn.push(item);
+    draw(item);
+    return cv;
+  }
+  // canvas height for chart-only (bare) drawing: shorter for KPI cards, taller for calendars
+  function bareSize(c, w) {
+    return [w, Math.round(w * (c.kind === 'kpi' ? 0.36 : c.kind === 'calendar' ? 0.62 : 0.5625))];
+  }
+  function download(cv, name) {
+    var a = document.createElement('a');
+    a.href = cv.toDataURL('image/png');
+    a.download = name + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function themeBar(withEach, extra) {
+    var bar = el('div', 'bar no-print', UI.themes);
+    var custom = theme && typeof theme === 'object' ? theme : null;
+    var keys = (custom ? ['custom'] : []).concat(withEach ? [''] : [], ['latte', 'mist', 'navy']);
+    var cur = custom ? 'custom' : theme || (withEach ? '' : 'latte');
+    keys.forEach(function (k) {
+      var b = el('button', k === cur ? 'on' : '', k ? UI[k] : UI.each);
+      b.addEventListener('click', function () {
+        theme = k === 'custom' ? custom : k;
+        Array.prototype.forEach.call(bar.querySelectorAll('button:not(.print)'), function (x) { x.className = x === b ? 'on' : ''; });
+        setVars();
+        drawn.forEach(draw);
+      });
+      bar.appendChild(b);
+    });
+    if (extra) bar.appendChild(extra);
+    return bar;
+  }
+  function list(tag, cls, items) {
+    var l = el(tag, cls);
+    items.forEach(function (t) { l.appendChild(el('li', '', t)); });
+    return l;
   }
 
-  var bar = document.getElementById('themes');
-  [''].concat(Object.keys(NAMES)).forEach(function (k) {
-    var b = document.createElement('button');
-    b.textContent = k ? NAMES[k] : UI.each;
-    b.className = k === theme ? 'on' : '';
-    b.addEventListener('click', function () {
-      theme = k;
-      Array.prototype.forEach.call(bar.querySelectorAll('button'), function (x) { x.className = x === b ? 'on' : ''; });
-      canvases.forEach(draw);
-    });
-    bar.appendChild(b);
-  });
-
-  CHARTS.forEach(function (c, i) {
-    if (!Charts[c.kind]) return;
-    var fig = document.createElement('figure');
-    var cap = document.createElement('figcaption');
-    cap.textContent = (i + 1) + '. ' + (c.title || c.kind);
-    fig.appendChild(cap);
-    var pair = document.createElement('div');
-    pair.className = 'pair';
-    var sizes = c.kind !== 'dashboard' ? SIZES :
-      [{ key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
-       { key: 'long', w: 1080, h: Charts.dashboardHeight(c, 1080), cls: 'c34', label: UI.dlong }];
-    sizes.forEach(function (sz) {
-      var box = document.createElement('div');
-      var cv = document.createElement('canvas');
-      cv.width = sz.w; cv.height = sz.h; cv.className = sz.cls;
-      cv.id = 'chart-' + (i + 1) + '-' + sz.key;
-      var item = { c: c, cv: cv };
-      canvases.push(item);
-      draw(item);
-      var btn = document.createElement('button');
-      btn.className = 'dl';
-      btn.textContent = sz.label;
-      btn.addEventListener('click', function () {
-        var a = document.createElement('a');
-        a.href = cv.toDataURL('image/png');
-        a.download = (c.file || ('chart-' + (i + 1))) + '-' + sz.key + '.png';
-        document.body.appendChild(a); a.click(); a.remove();
+  // ---------- charts: download each chart ----------
+  function gallery() {
+    var wrap = el('main', 'gallery');
+    wrap.appendChild(el('h1', '', DOC.title || 'excel-charts'));
+    wrap.appendChild(el('p', 'lead', UI.lead));
+    wrap.appendChild(themeBar(true));
+    (DOC.charts || []).forEach(function (c, i) {
+      if (!Charts[c.kind] || c.kind === 'palette') return;
+      var fig = el('figure');
+      fig.appendChild(el('figcaption', '', (i + 1) + '. ' + (c.title || c.kind)));
+      var pair = el('div', 'pair');
+      var sizes = c.kind === 'dashboard'
+        ? [{ key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
+           { key: 'long', w: 1080, h: Charts.dashboardHeight(c, 1080), cls: 'c34', label: UI.dlong }]
+        : [{ key: '3x4', w: 1080, h: 1440, cls: 'c34', label: UI.d34 },
+           { key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
+           { key: 'chart', bare: true, cls: 'cbare', label: UI.dbare }];
+      sizes.forEach(function (sz) {
+        var box = el('div');
+        var wh = sz.bare ? bareSize(c, 1600) : [sz.w, sz.h];
+        var cv = canvas(c, wh[0], wh[1], !!sz.bare, sz.cls);
+        cv.id = 'chart-' + (i + 1) + '-' + sz.key;
+        var btn = el('button', 'dl', sz.label);
+        btn.addEventListener('click', function () { download(cv, (c.file || ('chart-' + (i + 1))) + '-' + sz.key); });
+        box.appendChild(cv); box.appendChild(btn);
+        pair.appendChild(box);
       });
-      box.appendChild(cv); box.appendChild(btn);
-      pair.appendChild(box);
+      fig.appendChild(pair);
+      wrap.appendChild(fig);
     });
-    fig.appendChild(pair);
-    list.appendChild(fig);
-  });
+    app.appendChild(wrap);
+  }
+
+  // ---------- report: one long page, prints to A4 PDF ----------
+  function report() {
+    var wrap = el('main', 'report');
+    var pb = el('button', 'print', UI.print);
+    pb.addEventListener('click', function () { window.print(); });
+    wrap.appendChild(themeBar(false, pb));
+    var head = el('header');
+    head.appendChild(el('h1', '', DOC.title || ''));
+    if (DOC.subtitle) head.appendChild(el('p', 'sub', DOC.subtitle));
+    var meta = [DOC.author, DOC.date].filter(Boolean).join(' · ');
+    if (meta) head.appendChild(el('div', 'meta', meta));
+    wrap.appendChild(head);
+    if (DOC.summary && DOC.summary.length) {
+      var f = el('section', 'findings');
+      f.appendChild(el('h2', '', UI.findings));
+      f.appendChild(list('ol', '', DOC.summary));
+      wrap.appendChild(f);
+    }
+    (DOC.sections || []).forEach(function (c, i) {
+      var sec = el('section', 'sec');
+      sec.appendChild(el('h2', '', c.title || ''));
+      if (c.subtitle) sec.appendChild(el('div', 'unit', c.subtitle));
+      if (Charts[c.kind] && c.kind !== 'palette') {
+        var dash = c.kind === 'dashboard';
+        var wh = dash ? [1920, 1080] : bareSize(c, 1600);
+        var cv = canvas(c, wh[0], wh[1], !dash);
+        cv.id = 'chart-' + (i + 1);
+        sec.appendChild(cv);
+      }
+      if (c.text) sec.appendChild(el('p', '', c.text));
+      if (c.points && c.points.length) sec.appendChild(list('ul', '', c.points));
+      wrap.appendChild(sec);
+    });
+    if (DOC.notes && DOC.notes.length) {
+      var n = el('section', 'notes');
+      n.appendChild(el('h2', '', UI.notes));
+      n.appendChild(list('ul', '', DOC.notes));
+      wrap.appendChild(n);
+    }
+    if (DOC.sign) wrap.appendChild(el('div', 'foot', DOC.sign));
+    app.appendChild(wrap);
+  }
+
+  // ---------- slides: 1920x1080, keyboard navigation, prints one slide per PDF page ----------
+  function slides() {
+    document.body.className = 'deck';
+    var wrapEl = el('div', 'stage-wrap'), stage = el('div', 'stage');
+    wrapEl.appendChild(stage);
+    app.appendChild(wrapEl);
+    var all = [];
+    function slide() { var s = el('section', 'slide'); stage.appendChild(s); all.push(s); return s; }
+
+    var cover = slide();
+    cover.appendChild(el('div', 'rulebar'));
+    if (DOC.kicker) cover.appendChild(el('div', 'kicker', DOC.kicker));
+    cover.appendChild(el('h1', '', DOC.title || ''));
+    if (DOC.subtitle) cover.appendChild(el('div', 'cover-sub', DOC.subtitle));
+    var meta = [DOC.author, DOC.date].filter(Boolean).join(' · ');
+    if (meta) cover.appendChild(el('div', 'cover-meta', meta));
+
+    if (DOC.summary && DOC.summary.length) {
+      var sm = slide();
+      sm.appendChild(el('div', 'kicker', UI.summary));
+      sm.appendChild(el('h2', '', DOC.summaryTitle || DOC.title || ''));
+      sm.appendChild(list('ol', 'big', DOC.summary.slice(0, 4)));
+    }
+
+    (DOC.sections || []).forEach(function (c, i) {
+      var sl = slide();
+      if (c.kicker) sl.appendChild(el('div', 'kicker', c.kicker));
+      sl.appendChild(el('h2', '', c.title || ''));
+      if (c.subtitle) sl.appendChild(el('div', 'unit', c.subtitle));
+      var body = el('div', 'body'), pts = (c.points || []).slice(0, 4);
+      var hasChart = Charts[c.kind] && c.kind !== 'palette';
+      if (hasChart) {
+        var box = el('div', 'chartbox'), dash = c.kind === 'dashboard';
+        // chart area: about 1068x614 with points, 1624x614 without; drawn at 1.5x to stay sharp
+        var w = (pts.length ? 1068 : 1624) * 1.5, h = 614 * 1.5;
+        var wh = dash ? [1920, 1080] : c.kind === 'calendar' ? bareSize(c, Math.round(w)) : [Math.round(w), Math.round(h)];
+        var cv = canvas(c, wh[0], wh[1], !dash);
+        cv.id = 'chart-' + (i + 1);
+        box.appendChild(cv);
+        body.appendChild(box);
+      }
+      if (pts.length) {
+        var side = el('div', hasChart ? 'side' : 'side wide');
+        side.appendChild(list('ul', '', pts));
+        body.appendChild(side);
+      }
+      sl.appendChild(body);
+    });
+
+    if (DOC.notes && DOC.notes.length) {
+      var nt = slide();
+      nt.appendChild(el('div', 'kicker', UI.about));
+      nt.appendChild(el('h2', '', UI.notes));
+      nt.appendChild(list('ul', 'notes-list', DOC.notes));
+    }
+
+    all.forEach(function (s, i) {
+      if (i > 0) s.appendChild(el('div', 'pageno', (i + 1) + ' / ' + all.length));
+      if (DOC.sign && i > 0) s.appendChild(el('div', 'sign', DOC.sign));
+    });
+    var prog = el('div', 'progress'), hint = el('div', 'hint', UI.hint);
+    document.body.appendChild(prog); document.body.appendChild(hint);
+    setTimeout(function () { hint.style.display = 'none'; }, 4000);
+
+    var cur = 0;
+    function go(n) {
+      cur = Math.max(0, Math.min(all.length - 1, n));
+      all.forEach(function (s, i) { s.className = 'slide' + (i === cur ? ' active' : ''); });
+      prog.style.width = ((cur + 1) / all.length * 100) + '%';
+      if (history.replaceState) history.replaceState(null, '', '#' + (cur + 1));
+    }
+    function fit() {
+      stage.style.transform = 'scale(' + Math.min(window.innerWidth / 1920, window.innerHeight / 1080) + ')';
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(cur + 1); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(cur - 1); e.preventDefault(); }
+      else if (e.key === 'Home') go(0);
+      else if (e.key === 'End') go(all.length - 1);
+      else if (e.key === 'f' || e.key === 'F') {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+      }
+    });
+    wrapEl.addEventListener('click', function (e) { go(e.clientX > window.innerWidth / 2 ? cur + 1 : cur - 1); });
+    window.addEventListener('resize', fit);
+    fit();
+    go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+  }
+
+  setVars();
+  if (MODE === 'report') report();
+  else if (MODE === 'slides') slides();
+  else gallery();
 })();
 </script>
 </body>

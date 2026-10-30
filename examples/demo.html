@@ -5,2177 +5,2249 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>excel-charts</title>
 <style>
-  body { margin: 0; background: #EFEBE5; color: #2D2A26; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
-  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .lead { color: #8C857B; font-size: 14px; margin: 0 0 14px; }
-  .themes { margin: 0 0 20px; font-size: 14px; color: #6E675E; }
-  .themes button { margin: 0 6px 6px 0; padding: 6px 12px; border: 1px solid #DCD4C8; border-radius: 8px; background: transparent; color: #6E675E; font-size: 14px; cursor: pointer; }
-  .themes button.on { background: #FBF9F6; color: #2D2A26; font-weight: 700; border-color: #2A669F; }
-  figure { margin: 0 0 28px; background: #FBF9F6; border-radius: 14px; padding: 16px; }
+  :root { --bg: #EFEBE5; --card: #FBF9F6; --ink: #2D2A26; --ink2: #8C857B; --rule: #E4DDD3; --acc: #2A669F;
+    --font: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  button { font-family: inherit; }
+  .bar { margin: 0 0 20px; font-size: 14px; color: var(--ink2); }
+  .bar button { margin: 0 6px 6px 0; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 8px; background: transparent; color: var(--ink2); font-size: 14px; cursor: pointer; }
+  .bar button.on { background: var(--card); color: var(--ink); font-weight: 700; border-color: var(--acc); }
+  .bar .print { background: var(--acc); color: #fff; border-color: var(--acc); }
+
+  /* ---- charts mode ---- */
+  .gallery { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  .gallery h1 { font-size: 20px; margin: 0 0 4px; }
+  .lead { color: var(--ink2); font-size: 14px; margin: 0 0 14px; }
+  figure { margin: 0 0 28px; background: var(--card); border-radius: 14px; padding: 16px; }
   figcaption { font-weight: 700; margin-bottom: 12px; }
   .pair { display: flex; flex-wrap: wrap; align-items: flex-start; }
   .pair > div { margin: 0 16px 12px 0; }
-  canvas { display: block; border-radius: 8px; box-shadow: 0 4px 14px rgba(60,40,20,.12); }
+  .pair canvas { display: block; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
   .c34 { width: 300px; } .c169 { width: 640px; max-width: 100%; }
-  .dl { margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 8px; background: #2A669F; color: #fff; font-size: 14px; cursor: pointer; }
+  .cbare { width: 480px; max-width: 100%; background: repeating-conic-gradient(var(--rule) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+  .dl { margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--acc); color: #fff; font-size: 14px; cursor: pointer; }
+
+  /* ---- report mode ---- */
+  .report { max-width: 880px; margin: 0 auto; padding: 40px 24px 64px; }
+  .report header { border-bottom: 3px solid var(--acc); padding-bottom: 20px; margin-bottom: 28px; }
+  .report h1 { font-size: 34px; line-height: 1.25; margin: 0 0 8px; }
+  .report .sub { font-size: 17px; color: var(--ink2); margin: 0; }
+  .report .meta { font-size: 13px; color: var(--ink2); margin-top: 10px; }
+  .findings { background: var(--card); border-left: 4px solid var(--acc); border-radius: 10px; padding: 18px 22px; margin: 0 0 32px; }
+  .findings h2, .notes h2 { font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink2); margin: 0 0 10px; }
+  .findings ol { margin: 0; padding-left: 22px; font-size: 17px; line-height: 1.6; }
+  .sec { background: var(--card); border-radius: 14px; padding: 24px 24px 18px; margin: 0 0 24px; break-inside: avoid; page-break-inside: avoid; }
+  .sec h2 { font-size: 22px; line-height: 1.3; margin: 0 0 4px; }
+  .sec .unit { font-size: 13px; color: var(--ink2); margin: 0 0 12px; }
+  .sec canvas { display: block; width: 100%; height: auto; }
+  .sec p, .sec ul { font-size: 16px; line-height: 1.65; margin: 12px 0 0; }
+  .sec ul { padding-left: 20px; }
+  .notes { font-size: 14px; color: var(--ink2); line-height: 1.6; margin-top: 32px; }
+  .notes ul { padding-left: 20px; margin: 0; }
+  .foot { font-size: 12px; color: var(--ink2); margin-top: 28px; }
+  @media print {
+    @page { size: A4; margin: 14mm; }
+    body { background: #fff; }
+    .no-print { display: none !important; }
+    .report { max-width: none; padding: 0; }
+  }
+
+  /* ---- slides mode: fixed 1920x1080 stage, scaled to the window ---- */
+  body.deck { overflow: hidden; background: #000; }
+  .stage-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; }
+  .stage { position: relative; width: 1920px; height: 1080px; flex: none; transform-origin: center center; }
+  .slide { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; background: var(--bg); padding: 96px 120px; visibility: hidden; opacity: 0; transition: opacity .35s ease; overflow: hidden; }
+  .slide.active { visibility: visible; opacity: 1; }
+  .slide .kicker { font-size: 24px; font-weight: 700; color: var(--acc); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 18px; }
+  .slide h1 { font-size: 104px; line-height: 1.08; margin: 0; max-width: 1500px; }
+  .slide h2 { font-size: 60px; line-height: 1.15; margin: 0; max-width: 1680px; }
+  .slide .unit { font-size: 26px; color: var(--ink2); margin-top: 12px; }
+  .slide .cover-sub { font-size: 40px; color: var(--ink2); margin-top: 32px; max-width: 1400px; line-height: 1.35; }
+  .slide .cover-meta { position: absolute; left: 120px; bottom: 96px; font-size: 26px; color: var(--ink2); }
+  .slide .rulebar { width: 160px; height: 10px; background: var(--acc); border-radius: 5px; margin-bottom: 56px; }
+  .slide .body { position: absolute; left: 120px; right: 120px; top: 300px; bottom: 110px; display: flex; align-items: stretch; }
+  .slide .chartbox { flex: 1; min-width: 0; background: var(--card); border-radius: 28px; padding: 28px; display: flex; align-items: center; justify-content: center; }
+  .slide .chartbox canvas { display: block; max-width: 100%; max-height: 100%; }
+  .slide .side { width: 520px; flex: none; margin-left: 56px; display: flex; flex-direction: column; justify-content: center; }
+  .slide .side.wide { width: auto; flex: 1; margin-left: 0; }
+  .slide .side ul { margin: 0; padding: 0; list-style: none; }
+  .slide .side li { font-size: 32px; line-height: 1.4; padding: 0 0 28px 30px; position: relative; }
+  .slide .side li::before { content: ""; position: absolute; left: 0; top: 16px; width: 12px; height: 12px; border-radius: 50%; background: var(--acc); }
+  .slide .big { margin: 64px 0 0; padding: 0; list-style: none; counter-reset: k; }
+  .slide .big li { font-size: 44px; line-height: 1.35; margin-bottom: 40px; padding-left: 96px; position: relative; counter-increment: k; max-width: 1560px; }
+  .slide .big li::before { content: counter(k); position: absolute; left: 0; top: -2px; width: 64px; height: 64px; border-radius: 50%; background: var(--acc); color: #fff; font-size: 34px; font-weight: 700; text-align: center; line-height: 64px; }
+  .slide .notes-list { margin: 56px 0 0; padding-left: 36px; font-size: 30px; line-height: 1.55; color: var(--ink2); max-width: 1600px; }
+  .slide .pageno { position: absolute; right: 120px; bottom: 48px; font-size: 22px; color: var(--ink2); }
+  .slide .sign { position: absolute; left: 120px; bottom: 48px; font-size: 22px; color: var(--ink2); }
+  .progress { position: fixed; left: 0; bottom: 0; height: 4px; background: var(--acc); transition: width .3s; z-index: 3; }
+  .hint { position: fixed; right: 16px; top: 12px; font-size: 13px; color: #999; z-index: 3; }
+  @media (prefers-reduced-motion: reduce) { .slide, .progress { transition: none; } }
+  @media print {
+    @page { size: 1920px 1080px; margin: 0; }
+    body.deck { overflow: visible; background: var(--bg); }
+    .stage-wrap { position: static; display: block; }
+    .stage { transform: none !important; width: 1920px; height: auto; }
+    .slide { position: relative; visibility: visible; opacity: 1; page-break-after: always; break-after: page; }
+    .progress, .hint { display: none; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>excel-charts</h1>
-  <p class="lead" id="lead"></p>
-  <div class="themes" id="themes"></div>
-  <div id="list"></div>
-</main>
+<div id="app"></div>
 <script>
 /* ===== DATA: edit only this line ===== */
-var CHARTS = [
- {
-  "kind": "dashboard",
-  "title": "2025 coffee shop dashboard",
-  "subtitle": "6 stores · data through 2025-12-31",
-  "file": "dashboard",
-  "lang": "en",
-  "panels": [
-   {
-    "kind": "kpi",
-    "labelB": "vs last year",
-    "rows": [
-     {
-      "name": "Sales ($)",
-      "a": 215.3,
-      "b": 204.6,
-      "unit": "k"
-     },
-     {
-      "name": "Cups sold",
-      "a": 61.8,
-      "b": 57.2,
-      "unit": "k"
-     },
-     {
-      "name": "Average ticket ($)",
-      "a": 34.8,
-      "b": 35.8,
-      "unit": ""
-     },
-     {
-      "name": "Repeat rate",
-      "a": 38.5,
-      "b": 35.1,
-      "unit": "%"
-     }
-    ]
-   },
-   {
-    "kind": "column",
-    "title": "December sold the most",
-    "subtitle": "Monthly sales, $k",
-    "highlight": "Dec",
-    "rows": [
-     {
-      "name": "Jan",
-      "a": 15.2
-     },
-     {
-      "name": "Feb",
-      "a": 12.1
-     },
-     {
-      "name": "Mar",
-      "a": 16.8
-     },
-     {
-      "name": "Apr",
-      "a": 17.5
-     },
-     {
-      "name": "May",
-      "a": 18.9
-     },
-     {
-      "name": "Jun",
-      "a": 20.4
-     },
-     {
-      "name": "Jul",
-      "a": 22.6
-     },
-     {
-      "name": "Aug",
-      "a": 23.1
-     },
-     {
-      "name": "Sep",
-      "a": 19.7
-     },
-     {
-      "name": "Oct",
-      "a": 18.2
-     },
-     {
-      "name": "Nov",
-      "a": 19.4
-     },
-     {
-      "name": "Dec",
-      "a": 24.0
-     }
-    ]
-   },
-   {
-    "kind": "bar",
-    "title": "Tech Park is #1",
-    "subtitle": "Sales by store, $k",
-    "rows": [
-     {
-      "name": "Main St",
-      "a": 33.6
-     },
-     {
-      "name": "Riverside",
-      "a": 45.7
-     },
-     {
-      "name": "Tech Park",
-      "a": 46.9
-     },
-     {
-      "name": "Campus",
-      "a": 25.5
-     },
-     {
-      "name": "Old Town",
-      "a": 26.3
-     },
-     {
-      "name": "Airport",
-      "a": 37.3
-     }
-    ]
-   },
-   {
-    "kind": "line",
-    "title": "Delivery is catching up",
-    "subtitle": "Cups per month, thousands",
-    "series": [
-     "Dine-in",
-     "Delivery"
-    ],
-    "rows": [
-     {
-      "name": "Jan",
-      "v": [
-       21.4,
-       9.8
-      ]
-     },
-     {
-      "name": "Feb",
-      "v": [
-       17.9,
-       9.1
-      ]
-     },
-     {
-      "name": "Mar",
-      "v": [
-       22.6,
-       11.5
-      ]
-     },
-     {
-      "name": "Apr",
-      "v": [
-       22.1,
-       12.8
-      ]
-     },
-     {
-      "name": "May",
-      "v": [
-       23.0,
-       14.2
-      ]
-     },
-     {
-      "name": "Jun",
-      "v": [
-       22.4,
-       16.0
-      ]
-     },
-     {
-      "name": "Jul",
-      "v": [
-       23.8,
-       17.9
-      ]
-     },
-     {
-      "name": "Aug",
-      "v": [
-       24.1,
-       18.6
-      ]
-     },
-     {
-      "name": "Sep",
-      "v": [
-       22.0,
-       17.4
-      ]
-     },
-     {
-      "name": "Oct",
-      "v": [
-       21.5,
-       17.8
-      ]
-     },
-     {
-      "name": "Nov",
-      "v": [
-       21.0,
-       18.5
-      ]
-     },
-     {
-      "name": "Dec",
-      "v": [
-       23.2,
-       20.6
-      ]
-     }
-    ]
-   },
-   {
-    "kind": "donut",
-    "title": "Coffee is 3/4 of sales",
-    "subtitle": "Sales by category, $k",
-    "unit": "k",
-    "rows": [
-     {
-      "name": "Coffee",
-      "a": 161.2
-     },
-     {
-      "name": "Tea",
-      "a": 26.9
-     },
-     {
-      "name": "Bakery",
-      "a": 17.4
-     },
-     {
-      "name": "Desserts",
-      "a": 9.8
-     }
-    ]
-   }
-  ]
- },
- {
-  "kind": "bar",
-  "title": "Which of our 6 stores sells the most",
-  "subtitle": "2025 sales, $ thousands",
-  "rows": [
-   {
-    "name": "Main St",
-    "a": 33.6
-   },
-   {
-    "name": "Riverside",
-    "a": 45.7
-   },
-   {
-    "name": "Tech Park",
-    "a": 46.9
-   },
-   {
-    "name": "Campus",
-    "a": 25.5
-   },
-   {
-    "name": "Old Town",
-    "a": 26.3
-   },
-   {
-    "name": "Airport",
-    "a": 37.3
-   }
-  ]
- },
- {
-  "kind": "column",
-  "title": "Monthly sales in 2025",
-  "subtitle": "$ thousands",
-  "highlight": "Dec",
-  "rows": [
-   {
-    "name": "Jan",
-    "a": 15.2
-   },
-   {
-    "name": "Feb",
-    "a": 12.1
-   },
-   {
-    "name": "Mar",
-    "a": 16.8
-   },
-   {
-    "name": "Apr",
-    "a": 17.5
-   },
-   {
-    "name": "May",
-    "a": 18.9
-   },
-   {
-    "name": "Jun",
-    "a": 20.4
-   },
-   {
-    "name": "Jul",
-    "a": 22.6
-   },
-   {
-    "name": "Aug",
-    "a": 23.1
-   },
-   {
-    "name": "Sep",
-    "a": 19.7
-   },
-   {
-    "name": "Oct",
-    "a": 18.2
-   },
-   {
-    "name": "Nov",
-    "a": 19.4
-   },
-   {
-    "name": "Dec",
-    "a": 24.0
-   }
-  ]
- },
- {
-  "kind": "line",
-  "title": "Delivery is catching up with dine-in",
-  "subtitle": "Cups per month, thousands",
-  "series": [
-   "Dine-in",
-   "Delivery"
-  ],
-  "rows": [
-   {
-    "name": "Jan",
-    "v": [
-     21.4,
-     9.8
-    ]
-   },
-   {
-    "name": "Feb",
-    "v": [
-     17.9,
-     9.1
-    ]
-   },
-   {
-    "name": "Mar",
-    "v": [
-     22.6,
-     11.5
-    ]
-   },
-   {
-    "name": "Apr",
-    "v": [
-     22.1,
-     12.8
-    ]
-   },
-   {
-    "name": "May",
-    "v": [
-     23.0,
-     14.2
-    ]
-   },
-   {
-    "name": "Jun",
-    "v": [
-     22.4,
-     16.0
-    ]
-   },
-   {
-    "name": "Jul",
-    "v": [
-     23.8,
-     17.9
-    ]
-   },
-   {
-    "name": "Aug",
-    "v": [
-     24.1,
-     18.6
-    ]
-   },
-   {
-    "name": "Sep",
-    "v": [
-     22.0,
-     17.4
-    ]
-   },
-   {
-    "name": "Oct",
-    "v": [
-     21.5,
-     17.8
-    ]
-   },
-   {
-    "name": "Nov",
-    "v": [
-     21.0,
-     18.5
-    ]
-   },
-   {
-    "name": "Dec",
-    "v": [
-     23.2,
-     20.6
-    ]
-   }
-  ]
- },
- {
-  "kind": "donut",
-  "title": "Where 2025 sales came from",
-  "subtitle": "By category, $ thousands",
-  "unit": "k",
-  "rows": [
-   {
-    "name": "Coffee",
-    "a": 161.2
-   },
-   {
-    "name": "Tea",
-    "a": 26.9
-   },
-   {
-    "name": "Bakery",
-    "a": 17.4
-   },
-   {
-    "name": "Desserts",
-    "a": 9.8
-   }
-  ]
- },
- {
-  "kind": "stacked",
-  "title": "Quarterly sales by channel",
-  "subtitle": "$ thousands",
-  "series": [
-   "Dine-in",
-   "Delivery",
-   "Pickup"
-  ],
-  "rows": [
-   {
-    "name": "Q1",
-    "v": [
-     28.4,
-     9.6,
-     6.1
-    ]
-   },
-   {
-    "name": "Q2",
-    "v": [
-     31.2,
-     13.8,
-     7.8
-    ]
-   },
-   {
-    "name": "Q3",
-    "v": [
-     33.0,
-     18.1,
-     8.3
-    ]
-   },
-   {
-    "name": "Q4",
-    "v": [
-     32.1,
-     19.5,
-     8.9
-    ]
-   }
-  ]
- },
- {
-  "kind": "waterfall",
-  "title": "Why profit went up this year",
-  "subtitle": "$ thousands",
-  "endLabel": "2025 profit",
-  "rows": [
-   {
-    "name": "2024 profit",
-    "a": 28.5
-   },
-   {
-    "name": "Sales up",
-    "a": 12.6
-   },
-   {
-    "name": "Beans",
-    "a": -4.8
-   },
-   {
-    "name": "Rent",
-    "a": -2.1
-   },
-   {
-    "name": "Staff",
-    "a": -3.4
-   },
-   {
-    "name": "Delivery fees",
-    "a": -1.9
-   },
-   {
-    "name": "New menu",
-    "a": 3.2
-   }
-  ]
- },
- {
-  "kind": "kpi",
-  "title": "2025 at a glance",
-  "subtitle": "Compared with 2024",
-  "labelB": "vs last year",
-  "rows": [
-   {
-    "name": "Sales ($)",
-    "a": 215.3,
-    "b": 204.6,
-    "unit": "k"
-   },
-   {
-    "name": "Cups sold",
-    "a": 61.8,
-    "b": 57.2,
-    "unit": "k"
-   },
-   {
-    "name": "Average ticket ($)",
-    "a": 34.8,
-    "b": 35.8,
-    "unit": ""
-   },
-   {
-    "name": "Members",
-    "a": 1.86,
-    "b": 1.42,
-    "unit": "k"
-   },
-   {
-    "name": "Repeat rate",
-    "a": 38.5,
-    "b": 35.1,
-    "unit": "%"
-   },
-   {
-    "name": "Stores",
-    "a": 6,
-    "b": 6,
-    "unit": ""
-   }
-  ]
- },
- {
-  "kind": "dumbbell",
-  "title": "Sales by store: 2024 vs 2025",
-  "subtitle": "$ thousands",
-  "labelA": "2024",
-  "labelB": "2025",
-  "rows": [
-   {
-    "name": "Main St",
-    "a": 31.8,
-    "b": 33.6
-   },
-   {
-    "name": "Riverside",
-    "a": 42.9,
-    "b": 45.7
-   },
-   {
-    "name": "Tech Park",
-    "a": 45.1,
-    "b": 46.9
-   },
-   {
-    "name": "Campus",
-    "a": 24.0,
-    "b": 25.5
-   },
-   {
-    "name": "Old Town",
-    "a": 24.8,
-    "b": 26.3
-   },
-   {
-    "name": "Airport",
-    "a": 36.1,
-    "b": 37.3
-   }
-  ]
- },
- {
-  "kind": "waffle",
-  "title": "Where 2025 sales came from",
-  "subtitle": "By category, 1 square = 1%",
-  "unit": "k",
-  "rows": [
-   {
-    "name": "Coffee",
-    "a": 161.2
-   },
-   {
-    "name": "Tea",
-    "a": 26.9
-   },
-   {
-    "name": "Bakery",
-    "a": 17.4
-   },
-   {
-    "name": "Desserts",
-    "a": 9.8
-   }
-  ]
- },
- {
-  "kind": "bullet",
-  "title": "2025 sales vs target by store",
-  "subtitle": "$ thousands",
-  "rows": [
-   {
-    "name": "Main St",
-    "a": 33.6,
-    "b": 32
-   },
-   {
-    "name": "Riverside",
-    "a": 45.7,
-    "b": 44
-   },
-   {
-    "name": "Tech Park",
-    "a": 46.9,
-    "b": 50
-   },
-   {
-    "name": "Campus",
-    "a": 25.5,
-    "b": 27
-   },
-   {
-    "name": "Old Town",
-    "a": 26.3,
-    "b": 25
-   },
-   {
-    "name": "Airport",
-    "a": 37.3,
-    "b": 40
-   }
-  ]
- },
- {
-  "kind": "calendar",
-  "title": "Daily sales in 2025",
-  "subtitle": "Darker means a busier day",
-  "unit": "",
-  "rows": [
-   {
-    "name": "2025-01-01",
-    "a": 6511
-   },
-   {
-    "name": "2025-01-02",
-    "a": 6467
-   },
-   {
-    "name": "2025-01-03",
-    "a": 6027
-   },
-   {
-    "name": "2025-01-04",
-    "a": 5955
-   },
-   {
-    "name": "2025-01-05",
-    "a": 6009
-   },
-   {
-    "name": "2025-01-06",
-    "a": 6101
-   },
-   {
-    "name": "2025-01-07",
-    "a": 6927
-   },
-   {
-    "name": "2025-01-08",
-    "a": 6152
-   },
-   {
-    "name": "2025-01-09",
-    "a": 5771
-   },
-   {
-    "name": "2025-01-10",
-    "a": 6619
-   },
-   {
-    "name": "2025-01-11",
-    "a": 6316
-   },
-   {
-    "name": "2025-01-12",
-    "a": 6129
-   },
-   {
-    "name": "2025-01-13",
-    "a": 6457
-   },
-   {
-    "name": "2025-01-14",
-    "a": 5782
-   },
-   {
-    "name": "2025-01-15",
-    "a": 6864
-   },
-   {
-    "name": "2025-01-16",
-    "a": 6631
-   },
-   {
-    "name": "2025-01-17",
-    "a": 6852
-   },
-   {
-    "name": "2025-01-18",
-    "a": 6553
-   },
-   {
-    "name": "2025-01-19",
-    "a": 6591
-   },
-   {
-    "name": "2025-01-20",
-    "a": 6559
-   },
-   {
-    "name": "2025-01-21",
-    "a": 5978
-   },
-   {
-    "name": "2025-01-22",
-    "a": 6775
-   },
-   {
-    "name": "2025-01-23",
-    "a": 5807
-   },
-   {
-    "name": "2025-01-24",
-    "a": 6201
-   },
-   {
-    "name": "2025-01-25",
-    "a": 6498
-   },
-   {
-    "name": "2025-01-26",
-    "a": 6294
-   },
-   {
-    "name": "2025-01-27",
-    "a": 6134
-   },
-   {
-    "name": "2025-01-28",
-    "a": 6083
-   },
-   {
-    "name": "2025-01-29",
-    "a": 5758
-   },
-   {
-    "name": "2025-01-30",
-    "a": 5996
-   },
-   {
-    "name": "2025-01-31",
-    "a": 7293
-   },
-   {
-    "name": "2025-02-01",
-    "a": 5905
-   },
-   {
-    "name": "2025-02-02",
-    "a": 5496
-   },
-   {
-    "name": "2025-02-03",
-    "a": 6229
-   },
-   {
-    "name": "2025-02-04",
-    "a": 5462
-   },
-   {
-    "name": "2025-02-05",
-    "a": 6448
-   },
-   {
-    "name": "2025-02-06",
-    "a": 6398
-   },
-   {
-    "name": "2025-02-07",
-    "a": 6076
-   },
-   {
-    "name": "2025-02-08",
-    "a": 5482
-   },
-   {
-    "name": "2025-02-09",
-    "a": 5400
-   },
-   {
-    "name": "2025-02-10",
-    "a": 5793
-   },
-   {
-    "name": "2025-02-11",
-    "a": 5745
-   },
-   {
-    "name": "2025-02-12",
-    "a": 6445
-   },
-   {
-    "name": "2025-02-13",
-    "a": 5924
-   },
-   {
-    "name": "2025-02-14",
-    "a": 5809
-   },
-   {
-    "name": "2025-02-15",
-    "a": 4875
-   },
-   {
-    "name": "2025-02-16",
-    "a": 5088
-   },
-   {
-    "name": "2025-02-17",
-    "a": 6132
-   },
-   {
-    "name": "2025-02-18",
-    "a": 5541
-   },
-   {
-    "name": "2025-02-19",
-    "a": 6315
-   },
-   {
-    "name": "2025-02-20",
-    "a": 6037
-   },
-   {
-    "name": "2025-02-21",
-    "a": 5791
-   },
-   {
-    "name": "2025-02-22",
-    "a": 5882
-   },
-   {
-    "name": "2025-02-23",
-    "a": 5542
-   },
-   {
-    "name": "2025-02-24",
-    "a": 6180
-   },
-   {
-    "name": "2025-02-25",
-    "a": 6128
-   },
-   {
-    "name": "2025-02-26",
-    "a": 6053
-   },
-   {
-    "name": "2025-02-27",
-    "a": 6213
-   },
-   {
-    "name": "2025-02-28",
-    "a": 5766
-   },
-   {
-    "name": "2025-03-01",
-    "a": 5658
-   },
-   {
-    "name": "2025-03-02",
-    "a": 5391
-   },
-   {
-    "name": "2025-03-03",
-    "a": 6015
-   },
-   {
-    "name": "2025-03-04",
-    "a": 6416
-   },
-   {
-    "name": "2025-03-05",
-    "a": 6670
-   },
-   {
-    "name": "2025-03-06",
-    "a": 6463
-   },
-   {
-    "name": "2025-03-07",
-    "a": 6315
-   },
-   {
-    "name": "2025-03-08",
-    "a": 6357
-   },
-   {
-    "name": "2025-03-09",
-    "a": 5981
-   },
-   {
-    "name": "2025-03-10",
-    "a": 6303
-   },
-   {
-    "name": "2025-03-11",
-    "a": 6870
-   },
-   {
-    "name": "2025-03-12",
-    "a": 6086
-   },
-   {
-    "name": "2025-03-13",
-    "a": 5676
-   },
-   {
-    "name": "2025-03-14",
-    "a": 5904
-   },
-   {
-    "name": "2025-03-15",
-    "a": 6194
-   },
-   {
-    "name": "2025-03-16",
-    "a": 5201
-   },
-   {
-    "name": "2025-03-17",
-    "a": 6300
-   },
-   {
-    "name": "2025-03-18",
-    "a": 6329
-   },
-   {
-    "name": "2025-03-19",
-    "a": 6723
-   },
-   {
-    "name": "2025-03-20",
-    "a": 6082
-   },
-   {
-    "name": "2025-03-21",
-    "a": 6772
-   },
-   {
-    "name": "2025-03-22",
-    "a": 5705
-   },
-   {
-    "name": "2025-03-23",
-    "a": 5830
-   },
-   {
-    "name": "2025-03-24",
-    "a": 6388
-   },
-   {
-    "name": "2025-03-25",
-    "a": 5263
-   },
-   {
-    "name": "2025-03-26",
-    "a": 6495
-   },
-   {
-    "name": "2025-03-27",
-    "a": 5879
-   },
-   {
-    "name": "2025-03-28",
-    "a": 6669
-   },
-   {
-    "name": "2025-03-29",
-    "a": 6158
-   },
-   {
-    "name": "2025-03-30",
-    "a": 5702
-   },
-   {
-    "name": "2025-03-31",
-    "a": 6230
-   },
-   {
-    "name": "2025-04-01",
-    "a": 6549
-   },
-   {
-    "name": "2025-04-02",
-    "a": 6497
-   },
-   {
-    "name": "2025-04-03",
-    "a": 5712
-   },
-   {
-    "name": "2025-04-04",
-    "a": 6720
-   },
-   {
-    "name": "2025-04-05",
-    "a": 6006
-   },
-   {
-    "name": "2025-04-06",
-    "a": 5653
-   },
-   {
-    "name": "2025-04-07",
-    "a": 6444
-   },
-   {
-    "name": "2025-04-08",
-    "a": 5866
-   },
-   {
-    "name": "2025-04-09",
-    "a": 6095
-   },
-   {
-    "name": "2025-04-10",
-    "a": 6579
-   },
-   {
-    "name": "2025-04-11",
-    "a": 6666
-   },
-   {
-    "name": "2025-04-12",
-    "a": 6827
-   },
-   {
-    "name": "2025-04-13",
-    "a": 5729
-   },
-   {
-    "name": "2025-04-14",
-    "a": 6067
-   },
-   {
-    "name": "2025-04-15",
-    "a": 6540
-   },
-   {
-    "name": "2025-04-16",
-    "a": 6963
-   },
-   {
-    "name": "2025-04-17",
-    "a": 5966
-   },
-   {
-    "name": "2025-04-18",
-    "a": 5695
-   },
-   {
-    "name": "2025-04-19",
-    "a": 6446
-   },
-   {
-    "name": "2025-04-20",
-    "a": 5698
-   },
-   {
-    "name": "2025-04-21",
-    "a": 6357
-   },
-   {
-    "name": "2025-04-22",
-    "a": 6415
-   },
-   {
-    "name": "2025-04-23",
-    "a": 6223
-   },
-   {
-    "name": "2025-04-24",
-    "a": 6654
-   },
-   {
-    "name": "2025-04-25",
-    "a": 6090
-   },
-   {
-    "name": "2025-04-26",
-    "a": 5755
-   },
-   {
-    "name": "2025-04-27",
-    "a": 5512
-   },
-   {
-    "name": "2025-04-28",
-    "a": 5998
-   },
-   {
-    "name": "2025-04-29",
-    "a": 5897
-   },
-   {
-    "name": "2025-04-30",
-    "a": 6317
-   },
-   {
-    "name": "2025-05-01",
-    "a": 6183
-   },
-   {
-    "name": "2025-05-02",
-    "a": 6042
-   },
-   {
-    "name": "2025-05-03",
-    "a": 4817
-   },
-   {
-    "name": "2025-05-04",
-    "a": 5442
-   },
-   {
-    "name": "2025-05-05",
-    "a": 6525
-   },
-   {
-    "name": "2025-05-06",
-    "a": 5790
-   },
-   {
-    "name": "2025-05-07",
-    "a": 5699
-   },
-   {
-    "name": "2025-05-08",
-    "a": 6061
-   },
-   {
-    "name": "2025-05-09",
-    "a": 6233
-   },
-   {
-    "name": "2025-05-10",
-    "a": 5358
-   },
-   {
-    "name": "2025-05-11",
-    "a": 5361
-   },
-   {
-    "name": "2025-05-12",
-    "a": 5568
-   },
-   {
-    "name": "2025-05-13",
-    "a": 5536
-   },
-   {
-    "name": "2025-05-14",
-    "a": 5669
-   },
-   {
-    "name": "2025-05-15",
-    "a": 5675
-   },
-   {
-    "name": "2025-05-16",
-    "a": 6614
-   },
-   {
-    "name": "2025-05-17",
-    "a": 5254
-   },
-   {
-    "name": "2025-05-18",
-    "a": 5435
-   },
-   {
-    "name": "2025-05-19",
-    "a": 6261
-   },
-   {
-    "name": "2025-05-20",
-    "a": 5936
-   },
-   {
-    "name": "2025-05-21",
-    "a": 6411
-   },
-   {
-    "name": "2025-05-22",
-    "a": 6499
-   },
-   {
-    "name": "2025-05-23",
-    "a": 6031
-   },
-   {
-    "name": "2025-05-24",
-    "a": 6228
-   },
-   {
-    "name": "2025-05-25",
-    "a": 5375
-   },
-   {
-    "name": "2025-05-26",
-    "a": 5814
-   },
-   {
-    "name": "2025-05-27",
-    "a": 5645
-   },
-   {
-    "name": "2025-05-28",
-    "a": 5424
-   },
-   {
-    "name": "2025-05-29",
-    "a": 6271
-   },
-   {
-    "name": "2025-05-30",
-    "a": 6123
-   },
-   {
-    "name": "2025-05-31",
-    "a": 5495
-   },
-   {
-    "name": "2025-06-01",
-    "a": 4926
-   },
-   {
-    "name": "2025-06-02",
-    "a": 5817
-   },
-   {
-    "name": "2025-06-03",
-    "a": 5707
-   },
-   {
-    "name": "2025-06-04",
-    "a": 5857
-   },
-   {
-    "name": "2025-06-05",
-    "a": 5524
-   },
-   {
-    "name": "2025-06-06",
-    "a": 6374
-   },
-   {
-    "name": "2025-06-07",
-    "a": 5105
-   },
-   {
-    "name": "2025-06-08",
-    "a": 5384
-   },
-   {
-    "name": "2025-06-09",
-    "a": 6069
-   },
-   {
-    "name": "2025-06-10",
-    "a": 6333
-   },
-   {
-    "name": "2025-06-11",
-    "a": 5736
-   },
-   {
-    "name": "2025-06-12",
-    "a": 5177
-   },
-   {
-    "name": "2025-06-13",
-    "a": 6392
-   },
-   {
-    "name": "2025-06-14",
-    "a": 5484
-   },
-   {
-    "name": "2025-06-15",
-    "a": 5646
-   },
-   {
-    "name": "2025-06-16",
-    "a": 5218
-   },
-   {
-    "name": "2025-06-17",
-    "a": 5020
-   },
-   {
-    "name": "2025-06-18",
-    "a": 6068
-   },
-   {
-    "name": "2025-06-19",
-    "a": 5250
-   },
-   {
-    "name": "2025-06-20",
-    "a": 5733
-   },
-   {
-    "name": "2025-06-21",
-    "a": 5305
-   },
-   {
-    "name": "2025-06-22",
-    "a": 5390
-   },
-   {
-    "name": "2025-06-23",
-    "a": 5948
-   },
-   {
-    "name": "2025-06-24",
-    "a": 5562
-   },
-   {
-    "name": "2025-06-25",
-    "a": 5965
-   },
-   {
-    "name": "2025-06-26",
-    "a": 5645
-   },
-   {
-    "name": "2025-06-27",
-    "a": 6011
-   },
-   {
-    "name": "2025-06-28",
-    "a": 5221
-   },
-   {
-    "name": "2025-06-29",
-    "a": 5140
-   },
-   {
-    "name": "2025-06-30",
-    "a": 5922
-   },
-   {
-    "name": "2025-07-01",
-    "a": 4282
-   },
-   {
-    "name": "2025-07-02",
-    "a": 5483
-   },
-   {
-    "name": "2025-07-03",
-    "a": 4672
-   },
-   {
-    "name": "2025-07-04",
-    "a": 5517
-   },
-   {
-    "name": "2025-07-05",
-    "a": 4542
-   },
-   {
-    "name": "2025-07-06",
-    "a": 4673
-   },
-   {
-    "name": "2025-07-07",
-    "a": 5059
-   },
-   {
-    "name": "2025-07-08",
-    "a": 5183
-   },
-   {
-    "name": "2025-07-09",
-    "a": 5092
-   },
-   {
-    "name": "2025-07-10",
-    "a": 5061
-   },
-   {
-    "name": "2025-07-11",
-    "a": 4861
-   },
-   {
-    "name": "2025-07-12",
-    "a": 5104
-   },
-   {
-    "name": "2025-07-13",
-    "a": 5089
-   },
-   {
-    "name": "2025-07-14",
-    "a": 4795
-   },
-   {
-    "name": "2025-07-15",
-    "a": 5140
-   },
-   {
-    "name": "2025-07-16",
-    "a": 5660
-   },
-   {
-    "name": "2025-07-17",
-    "a": 5440
-   },
-   {
-    "name": "2025-07-18",
-    "a": 5145
-   },
-   {
-    "name": "2025-07-19",
-    "a": 4937
-   },
-   {
-    "name": "2025-07-20",
-    "a": 4791
-   },
-   {
-    "name": "2025-07-21",
-    "a": 5356
-   },
-   {
-    "name": "2025-07-22",
-    "a": 5222
-   },
-   {
-    "name": "2025-07-23",
-    "a": 5061
-   },
-   {
-    "name": "2025-07-24",
-    "a": 5357
-   },
-   {
-    "name": "2025-07-25",
-    "a": 4606
-   },
-   {
-    "name": "2025-07-26",
-    "a": 4613
-   },
-   {
-    "name": "2025-07-27",
-    "a": 4670
-   },
-   {
-    "name": "2025-07-28",
-    "a": 5284
-   },
-   {
-    "name": "2025-07-29",
-    "a": 5608
-   },
-   {
-    "name": "2025-07-30",
-    "a": 5313
-   },
-   {
-    "name": "2025-07-31",
-    "a": 4716
-   },
-   {
-    "name": "2025-08-01",
-    "a": 5146
-   },
-   {
-    "name": "2025-08-02",
-    "a": 5000
-   },
-   {
-    "name": "2025-08-03",
-    "a": 5005
-   },
-   {
-    "name": "2025-08-04",
-    "a": 5345
-   },
-   {
-    "name": "2025-08-05",
-    "a": 5132
-   },
-   {
-    "name": "2025-08-06",
-    "a": 5438
-   },
-   {
-    "name": "2025-08-07",
-    "a": 5406
-   },
-   {
-    "name": "2025-08-08",
-    "a": 4876
-   },
-   {
-    "name": "2025-08-09",
-    "a": 4929
-   },
-   {
-    "name": "2025-08-10",
-    "a": 5033
-   },
-   {
-    "name": "2025-08-11",
-    "a": 4973
-   },
-   {
-    "name": "2025-08-12",
-    "a": 5519
-   },
-   {
-    "name": "2025-08-13",
-    "a": 5528
-   },
-   {
-    "name": "2025-08-14",
-    "a": 4581
-   },
-   {
-    "name": "2025-08-15",
-    "a": 4886
-   },
-   {
-    "name": "2025-08-16",
-    "a": 4990
-   },
-   {
-    "name": "2025-08-17",
-    "a": 4845
-   },
-   {
-    "name": "2025-08-18",
-    "a": 5008
-   },
-   {
-    "name": "2025-08-19",
-    "a": 4705
-   },
-   {
-    "name": "2025-08-20",
-    "a": 5204
-   },
-   {
-    "name": "2025-08-21",
-    "a": 4614
-   },
-   {
-    "name": "2025-08-22",
-    "a": 5078
-   },
-   {
-    "name": "2025-08-23",
-    "a": 4729
-   },
-   {
-    "name": "2025-08-24",
-    "a": 5235
-   },
-   {
-    "name": "2025-08-25",
-    "a": 5215
-   },
-   {
-    "name": "2025-08-26",
-    "a": 5238
-   },
-   {
-    "name": "2025-08-27",
-    "a": 5063
-   },
-   {
-    "name": "2025-08-28",
-    "a": 5036
-   },
-   {
-    "name": "2025-08-29",
-    "a": 5579
-   },
-   {
-    "name": "2025-08-30",
-    "a": 4766
-   },
-   {
-    "name": "2025-08-31",
-    "a": 4910
-   },
-   {
-    "name": "2025-09-01",
-    "a": 5989
-   },
-   {
-    "name": "2025-09-02",
-    "a": 5805
-   },
-   {
-    "name": "2025-09-03",
-    "a": 5871
-   },
-   {
-    "name": "2025-09-04",
-    "a": 5138
-   },
-   {
-    "name": "2025-09-05",
-    "a": 5789
-   },
-   {
-    "name": "2025-09-06",
-    "a": 5990
-   },
-   {
-    "name": "2025-09-07",
-    "a": 5168
-   },
-   {
-    "name": "2025-09-08",
-    "a": 5079
-   },
-   {
-    "name": "2025-09-09",
-    "a": 5126
-   },
-   {
-    "name": "2025-09-10",
-    "a": 5016
-   },
-   {
-    "name": "2025-09-11",
-    "a": 5626
-   },
-   {
-    "name": "2025-09-12",
-    "a": 6000
-   },
-   {
-    "name": "2025-09-13",
-    "a": 5311
-   },
-   {
-    "name": "2025-09-14",
-    "a": 5738
-   },
-   {
-    "name": "2025-09-15",
-    "a": 6084
-   },
-   {
-    "name": "2025-09-16",
-    "a": 6194
-   },
-   {
-    "name": "2025-09-17",
-    "a": 5212
-   },
-   {
-    "name": "2025-09-18",
-    "a": 5803
-   },
-   {
-    "name": "2025-09-19",
-    "a": 5764
-   },
-   {
-    "name": "2025-09-20",
-    "a": 4899
-   },
-   {
-    "name": "2025-09-21",
-    "a": 4948
-   },
-   {
-    "name": "2025-09-22",
-    "a": 5636
-   },
-   {
-    "name": "2025-09-23",
-    "a": 6481
-   },
-   {
-    "name": "2025-09-24",
-    "a": 5916
-   },
-   {
-    "name": "2025-09-25",
-    "a": 6168
-   },
-   {
-    "name": "2025-09-26",
-    "a": 6308
-   },
-   {
-    "name": "2025-09-27",
-    "a": 5493
-   },
-   {
-    "name": "2025-09-28",
-    "a": 5134
-   },
-   {
-    "name": "2025-09-29",
-    "a": 5316
-   },
-   {
-    "name": "2025-09-30",
-    "a": 6255
-   },
-   {
-    "name": "2025-10-01",
-    "a": 6242
-   },
-   {
-    "name": "2025-10-02",
-    "a": 6029
-   },
-   {
-    "name": "2025-10-03",
-    "a": 6240
-   },
-   {
-    "name": "2025-10-04",
-    "a": 5892
-   },
-   {
-    "name": "2025-10-05",
-    "a": 4844
-   },
-   {
-    "name": "2025-10-06",
-    "a": 6242
-   },
-   {
-    "name": "2025-10-07",
-    "a": 6354
-   },
-   {
-    "name": "2025-10-08",
-    "a": 6291
-   },
-   {
-    "name": "2025-10-09",
-    "a": 6335
-   },
-   {
-    "name": "2025-10-10",
-    "a": 5833
-   },
-   {
-    "name": "2025-10-11",
-    "a": 6005
-   },
-   {
-    "name": "2025-10-12",
-    "a": 5598
-   },
-   {
-    "name": "2025-10-13",
-    "a": 6138
-   },
-   {
-    "name": "2025-10-14",
-    "a": 6027
-   },
-   {
-    "name": "2025-10-15",
-    "a": 6019
-   },
-   {
-    "name": "2025-10-16",
-    "a": 6184
-   },
-   {
-    "name": "2025-10-17",
-    "a": 6569
-   },
-   {
-    "name": "2025-10-18",
-    "a": 6170
-   },
-   {
-    "name": "2025-10-19",
-    "a": 5597
-   },
-   {
-    "name": "2025-10-20",
-    "a": 6105
-   },
-   {
-    "name": "2025-10-21",
-    "a": 6585
-   },
-   {
-    "name": "2025-10-22",
-    "a": 5655
-   },
-   {
-    "name": "2025-10-23",
-    "a": 6079
-   },
-   {
-    "name": "2025-10-24",
-    "a": 5358
-   },
-   {
-    "name": "2025-10-25",
-    "a": 5613
-   },
-   {
-    "name": "2025-10-26",
-    "a": 5599
-   },
-   {
-    "name": "2025-10-27",
-    "a": 6120
-   },
-   {
-    "name": "2025-10-28",
-    "a": 6409
-   },
-   {
-    "name": "2025-10-29",
-    "a": 6070
-   },
-   {
-    "name": "2025-10-30",
-    "a": 6692
-   },
-   {
-    "name": "2025-10-31",
-    "a": 7137
-   },
-   {
-    "name": "2025-11-01",
-    "a": 5565
-   },
-   {
-    "name": "2025-11-02",
-    "a": 6546
-   },
-   {
-    "name": "2025-11-03",
-    "a": 7211
-   },
-   {
-    "name": "2025-11-04",
-    "a": 6506
-   },
-   {
-    "name": "2025-11-05",
-    "a": 6126
-   },
-   {
-    "name": "2025-11-06",
-    "a": 6611
-   },
-   {
-    "name": "2025-11-07",
-    "a": 6523
-   },
-   {
-    "name": "2025-11-08",
-    "a": 5869
-   },
-   {
-    "name": "2025-11-09",
-    "a": 6081
-   },
-   {
-    "name": "2025-11-10",
-    "a": 6395
-   },
-   {
-    "name": "2025-11-11",
-    "a": 5644
-   },
-   {
-    "name": "2025-11-12",
-    "a": 6634
-   },
-   {
-    "name": "2025-11-13",
-    "a": 6742
-   },
-   {
-    "name": "2025-11-14",
-    "a": 6811
-   },
-   {
-    "name": "2025-11-15",
-    "a": 6684
-   },
-   {
-    "name": "2025-11-16",
-    "a": 5996
-   },
-   {
-    "name": "2025-11-17",
-    "a": 6018
-   },
-   {
-    "name": "2025-11-18",
-    "a": 5913
-   },
-   {
-    "name": "2025-11-19",
-    "a": 6576
-   },
-   {
-    "name": "2025-11-20",
-    "a": 6368
-   },
-   {
-    "name": "2025-11-21",
-    "a": 6346
-   },
-   {
-    "name": "2025-11-22",
-    "a": 6287
-   },
-   {
-    "name": "2025-11-23",
-    "a": 6560
-   },
-   {
-    "name": "2025-11-24",
-    "a": 6701
-   },
-   {
-    "name": "2025-11-25",
-    "a": 6419
-   },
-   {
-    "name": "2025-11-26",
-    "a": 6217
-   },
-   {
-    "name": "2025-11-27",
-    "a": 6500
-   },
-   {
-    "name": "2025-11-28",
-    "a": 6603
-   },
-   {
-    "name": "2025-11-29",
-    "a": 5640
-   },
-   {
-    "name": "2025-11-30",
-    "a": 5990
-   },
-   {
-    "name": "2025-12-01",
-    "a": 6288
-   },
-   {
-    "name": "2025-12-02",
-    "a": 6752
-   },
-   {
-    "name": "2025-12-03",
-    "a": 6769
-   },
-   {
-    "name": "2025-12-04",
-    "a": 6475
-   },
-   {
-    "name": "2025-12-05",
-    "a": 6660
-   },
-   {
-    "name": "2025-12-06",
-    "a": 6018
-   },
-   {
-    "name": "2025-12-07",
-    "a": 6774
-   },
-   {
-    "name": "2025-12-08",
-    "a": 6488
-   },
-   {
-    "name": "2025-12-09",
-    "a": 6471
-   },
-   {
-    "name": "2025-12-10",
-    "a": 7084
-   },
-   {
-    "name": "2025-12-11",
-    "a": 6944
-   },
-   {
-    "name": "2025-12-12",
-    "a": 6683
-   },
-   {
-    "name": "2025-12-13",
-    "a": 6470
-   },
-   {
-    "name": "2025-12-14",
-    "a": 6252
-   },
-   {
-    "name": "2025-12-15",
-    "a": 7073
-   },
-   {
-    "name": "2025-12-16",
-    "a": 6636
-   },
-   {
-    "name": "2025-12-17",
-    "a": 7128
-   },
-   {
-    "name": "2025-12-18",
-    "a": 6759
-   },
-   {
-    "name": "2025-12-19",
-    "a": 7230
-   },
-   {
-    "name": "2025-12-20",
-    "a": 6226
-   },
-   {
-    "name": "2025-12-21",
-    "a": 6088
-   },
-   {
-    "name": "2025-12-22",
-    "a": 6461
-   },
-   {
-    "name": "2025-12-23",
-    "a": 7084
-   },
-   {
-    "name": "2025-12-24",
-    "a": 6353
-   },
-   {
-    "name": "2025-12-25",
-    "a": 6669
-   },
-   {
-    "name": "2025-12-26",
-    "a": 6743
-   },
-   {
-    "name": "2025-12-27",
-    "a": 6266
-   },
-   {
-    "name": "2025-12-28",
-    "a": 6358
-   },
-   {
-    "name": "2025-12-29",
-    "a": 6812
-   },
-   {
-    "name": "2025-12-30",
-    "a": 7115
-   },
-   {
-    "name": "2025-12-31",
-    "a": 6941
-   }
-  ]
- }
-];
+var DOC = {
+ "mode": "charts",
+ "title": "Example charts",
+ "charts": [
+  {
+   "kind": "dashboard",
+   "title": "2025 coffee shop dashboard",
+   "subtitle": "6 stores · data through 2025-12-31",
+   "file": "dashboard",
+   "lang": "en",
+   "panels": [
+    {
+     "kind": "kpi",
+     "labelB": "vs last year",
+     "rows": [
+      {
+       "name": "Sales ($)",
+       "a": 215.3,
+       "b": 204.6,
+       "unit": "k"
+      },
+      {
+       "name": "Cups sold",
+       "a": 61.8,
+       "b": 57.2,
+       "unit": "k"
+      },
+      {
+       "name": "Average ticket ($)",
+       "a": 34.8,
+       "b": 35.8,
+       "unit": ""
+      },
+      {
+       "name": "Repeat rate",
+       "a": 38.5,
+       "b": 35.1,
+       "unit": "%"
+      }
+     ]
+    },
+    {
+     "kind": "column",
+     "title": "December sold the most",
+     "subtitle": "Monthly sales, $k",
+     "highlight": "Dec",
+     "rows": [
+      {
+       "name": "Jan",
+       "a": 15.2
+      },
+      {
+       "name": "Feb",
+       "a": 12.1
+      },
+      {
+       "name": "Mar",
+       "a": 16.8
+      },
+      {
+       "name": "Apr",
+       "a": 17.5
+      },
+      {
+       "name": "May",
+       "a": 18.9
+      },
+      {
+       "name": "Jun",
+       "a": 20.4
+      },
+      {
+       "name": "Jul",
+       "a": 22.6
+      },
+      {
+       "name": "Aug",
+       "a": 23.1
+      },
+      {
+       "name": "Sep",
+       "a": 19.7
+      },
+      {
+       "name": "Oct",
+       "a": 18.2
+      },
+      {
+       "name": "Nov",
+       "a": 19.4
+      },
+      {
+       "name": "Dec",
+       "a": 24.0
+      }
+     ]
+    },
+    {
+     "kind": "bar",
+     "title": "Tech Park is #1",
+     "subtitle": "Sales by store, $k",
+     "rows": [
+      {
+       "name": "Main St",
+       "a": 33.6
+      },
+      {
+       "name": "Riverside",
+       "a": 45.7
+      },
+      {
+       "name": "Tech Park",
+       "a": 46.9
+      },
+      {
+       "name": "Campus",
+       "a": 25.5
+      },
+      {
+       "name": "Old Town",
+       "a": 26.3
+      },
+      {
+       "name": "Airport",
+       "a": 37.3
+      }
+     ]
+    },
+    {
+     "kind": "line",
+     "title": "Delivery is catching up",
+     "subtitle": "Cups per month, thousands",
+     "series": [
+      "Dine-in",
+      "Delivery"
+     ],
+     "rows": [
+      {
+       "name": "Jan",
+       "v": [
+        21.4,
+        9.8
+       ]
+      },
+      {
+       "name": "Feb",
+       "v": [
+        17.9,
+        9.1
+       ]
+      },
+      {
+       "name": "Mar",
+       "v": [
+        22.6,
+        11.5
+       ]
+      },
+      {
+       "name": "Apr",
+       "v": [
+        22.1,
+        12.8
+       ]
+      },
+      {
+       "name": "May",
+       "v": [
+        23.0,
+        14.2
+       ]
+      },
+      {
+       "name": "Jun",
+       "v": [
+        22.4,
+        16.0
+       ]
+      },
+      {
+       "name": "Jul",
+       "v": [
+        23.8,
+        17.9
+       ]
+      },
+      {
+       "name": "Aug",
+       "v": [
+        24.1,
+        18.6
+       ]
+      },
+      {
+       "name": "Sep",
+       "v": [
+        22.0,
+        17.4
+       ]
+      },
+      {
+       "name": "Oct",
+       "v": [
+        21.5,
+        17.8
+       ]
+      },
+      {
+       "name": "Nov",
+       "v": [
+        21.0,
+        18.5
+       ]
+      },
+      {
+       "name": "Dec",
+       "v": [
+        23.2,
+        20.6
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "donut",
+     "title": "Coffee is 3/4 of sales",
+     "subtitle": "Sales by category, $k",
+     "unit": "k",
+     "rows": [
+      {
+       "name": "Coffee",
+       "a": 161.2
+      },
+      {
+       "name": "Tea",
+       "a": 26.9
+      },
+      {
+       "name": "Bakery",
+       "a": 17.4
+      },
+      {
+       "name": "Desserts",
+       "a": 9.8
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "kind": "bar",
+   "title": "Which of our 6 stores sells the most",
+   "subtitle": "2025 sales, $ thousands",
+   "rows": [
+    {
+     "name": "Main St",
+     "a": 33.6
+    },
+    {
+     "name": "Riverside",
+     "a": 45.7
+    },
+    {
+     "name": "Tech Park",
+     "a": 46.9
+    },
+    {
+     "name": "Campus",
+     "a": 25.5
+    },
+    {
+     "name": "Old Town",
+     "a": 26.3
+    },
+    {
+     "name": "Airport",
+     "a": 37.3
+    }
+   ]
+  },
+  {
+   "kind": "column",
+   "title": "Monthly sales in 2025",
+   "subtitle": "$ thousands",
+   "highlight": "Dec",
+   "rows": [
+    {
+     "name": "Jan",
+     "a": 15.2
+    },
+    {
+     "name": "Feb",
+     "a": 12.1
+    },
+    {
+     "name": "Mar",
+     "a": 16.8
+    },
+    {
+     "name": "Apr",
+     "a": 17.5
+    },
+    {
+     "name": "May",
+     "a": 18.9
+    },
+    {
+     "name": "Jun",
+     "a": 20.4
+    },
+    {
+     "name": "Jul",
+     "a": 22.6
+    },
+    {
+     "name": "Aug",
+     "a": 23.1
+    },
+    {
+     "name": "Sep",
+     "a": 19.7
+    },
+    {
+     "name": "Oct",
+     "a": 18.2
+    },
+    {
+     "name": "Nov",
+     "a": 19.4
+    },
+    {
+     "name": "Dec",
+     "a": 24.0
+    }
+   ]
+  },
+  {
+   "kind": "line",
+   "title": "Delivery is catching up with dine-in",
+   "subtitle": "Cups per month, thousands",
+   "series": [
+    "Dine-in",
+    "Delivery"
+   ],
+   "rows": [
+    {
+     "name": "Jan",
+     "v": [
+      21.4,
+      9.8
+     ]
+    },
+    {
+     "name": "Feb",
+     "v": [
+      17.9,
+      9.1
+     ]
+    },
+    {
+     "name": "Mar",
+     "v": [
+      22.6,
+      11.5
+     ]
+    },
+    {
+     "name": "Apr",
+     "v": [
+      22.1,
+      12.8
+     ]
+    },
+    {
+     "name": "May",
+     "v": [
+      23.0,
+      14.2
+     ]
+    },
+    {
+     "name": "Jun",
+     "v": [
+      22.4,
+      16.0
+     ]
+    },
+    {
+     "name": "Jul",
+     "v": [
+      23.8,
+      17.9
+     ]
+    },
+    {
+     "name": "Aug",
+     "v": [
+      24.1,
+      18.6
+     ]
+    },
+    {
+     "name": "Sep",
+     "v": [
+      22.0,
+      17.4
+     ]
+    },
+    {
+     "name": "Oct",
+     "v": [
+      21.5,
+      17.8
+     ]
+    },
+    {
+     "name": "Nov",
+     "v": [
+      21.0,
+      18.5
+     ]
+    },
+    {
+     "name": "Dec",
+     "v": [
+      23.2,
+      20.6
+     ]
+    }
+   ]
+  },
+  {
+   "kind": "donut",
+   "title": "Where 2025 sales came from",
+   "subtitle": "By category, $ thousands",
+   "unit": "k",
+   "rows": [
+    {
+     "name": "Coffee",
+     "a": 161.2
+    },
+    {
+     "name": "Tea",
+     "a": 26.9
+    },
+    {
+     "name": "Bakery",
+     "a": 17.4
+    },
+    {
+     "name": "Desserts",
+     "a": 9.8
+    }
+   ]
+  },
+  {
+   "kind": "stacked",
+   "title": "Quarterly sales by channel",
+   "subtitle": "$ thousands",
+   "series": [
+    "Dine-in",
+    "Delivery",
+    "Pickup"
+   ],
+   "rows": [
+    {
+     "name": "Q1",
+     "v": [
+      28.4,
+      9.6,
+      6.1
+     ]
+    },
+    {
+     "name": "Q2",
+     "v": [
+      31.2,
+      13.8,
+      7.8
+     ]
+    },
+    {
+     "name": "Q3",
+     "v": [
+      33.0,
+      18.1,
+      8.3
+     ]
+    },
+    {
+     "name": "Q4",
+     "v": [
+      32.1,
+      19.5,
+      8.9
+     ]
+    }
+   ]
+  },
+  {
+   "kind": "waterfall",
+   "title": "Why profit went up this year",
+   "subtitle": "$ thousands",
+   "endLabel": "2025 profit",
+   "rows": [
+    {
+     "name": "2024 profit",
+     "a": 28.5
+    },
+    {
+     "name": "Sales up",
+     "a": 12.6
+    },
+    {
+     "name": "Beans",
+     "a": -4.8
+    },
+    {
+     "name": "Rent",
+     "a": -2.1
+    },
+    {
+     "name": "Staff",
+     "a": -3.4
+    },
+    {
+     "name": "Delivery fees",
+     "a": -1.9
+    },
+    {
+     "name": "New menu",
+     "a": 3.2
+    }
+   ]
+  },
+  {
+   "kind": "kpi",
+   "title": "2025 at a glance",
+   "subtitle": "Compared with 2024",
+   "labelB": "vs last year",
+   "rows": [
+    {
+     "name": "Sales ($)",
+     "a": 215.3,
+     "b": 204.6,
+     "unit": "k"
+    },
+    {
+     "name": "Cups sold",
+     "a": 61.8,
+     "b": 57.2,
+     "unit": "k"
+    },
+    {
+     "name": "Average ticket ($)",
+     "a": 34.8,
+     "b": 35.8,
+     "unit": ""
+    },
+    {
+     "name": "Members",
+     "a": 1.86,
+     "b": 1.42,
+     "unit": "k"
+    },
+    {
+     "name": "Repeat rate",
+     "a": 38.5,
+     "b": 35.1,
+     "unit": "%"
+    },
+    {
+     "name": "Stores",
+     "a": 6,
+     "b": 6,
+     "unit": ""
+    }
+   ]
+  },
+  {
+   "kind": "dumbbell",
+   "title": "Sales by store: 2024 vs 2025",
+   "subtitle": "$ thousands",
+   "labelA": "2024",
+   "labelB": "2025",
+   "rows": [
+    {
+     "name": "Main St",
+     "a": 31.8,
+     "b": 33.6
+    },
+    {
+     "name": "Riverside",
+     "a": 42.9,
+     "b": 45.7
+    },
+    {
+     "name": "Tech Park",
+     "a": 45.1,
+     "b": 46.9
+    },
+    {
+     "name": "Campus",
+     "a": 24.0,
+     "b": 25.5
+    },
+    {
+     "name": "Old Town",
+     "a": 24.8,
+     "b": 26.3
+    },
+    {
+     "name": "Airport",
+     "a": 36.1,
+     "b": 37.3
+    }
+   ]
+  },
+  {
+   "kind": "waffle",
+   "title": "Where 2025 sales came from",
+   "subtitle": "By category, 1 square = 1%",
+   "unit": "k",
+   "rows": [
+    {
+     "name": "Coffee",
+     "a": 161.2
+    },
+    {
+     "name": "Tea",
+     "a": 26.9
+    },
+    {
+     "name": "Bakery",
+     "a": 17.4
+    },
+    {
+     "name": "Desserts",
+     "a": 9.8
+    }
+   ]
+  },
+  {
+   "kind": "bullet",
+   "title": "2025 sales vs target by store",
+   "subtitle": "$ thousands",
+   "rows": [
+    {
+     "name": "Main St",
+     "a": 33.6,
+     "b": 32
+    },
+    {
+     "name": "Riverside",
+     "a": 45.7,
+     "b": 44
+    },
+    {
+     "name": "Tech Park",
+     "a": 46.9,
+     "b": 50
+    },
+    {
+     "name": "Campus",
+     "a": 25.5,
+     "b": 27
+    },
+    {
+     "name": "Old Town",
+     "a": 26.3,
+     "b": 25
+    },
+    {
+     "name": "Airport",
+     "a": 37.3,
+     "b": 40
+    }
+   ]
+  },
+  {
+   "kind": "calendar",
+   "title": "Daily sales in 2025",
+   "subtitle": "Darker means a busier day",
+   "unit": "",
+   "rows": [
+    {
+     "name": "2025-01-01",
+     "a": 6511
+    },
+    {
+     "name": "2025-01-02",
+     "a": 6467
+    },
+    {
+     "name": "2025-01-03",
+     "a": 6027
+    },
+    {
+     "name": "2025-01-04",
+     "a": 5955
+    },
+    {
+     "name": "2025-01-05",
+     "a": 6009
+    },
+    {
+     "name": "2025-01-06",
+     "a": 6101
+    },
+    {
+     "name": "2025-01-07",
+     "a": 6927
+    },
+    {
+     "name": "2025-01-08",
+     "a": 6152
+    },
+    {
+     "name": "2025-01-09",
+     "a": 5771
+    },
+    {
+     "name": "2025-01-10",
+     "a": 6619
+    },
+    {
+     "name": "2025-01-11",
+     "a": 6316
+    },
+    {
+     "name": "2025-01-12",
+     "a": 6129
+    },
+    {
+     "name": "2025-01-13",
+     "a": 6457
+    },
+    {
+     "name": "2025-01-14",
+     "a": 5782
+    },
+    {
+     "name": "2025-01-15",
+     "a": 6864
+    },
+    {
+     "name": "2025-01-16",
+     "a": 6631
+    },
+    {
+     "name": "2025-01-17",
+     "a": 6852
+    },
+    {
+     "name": "2025-01-18",
+     "a": 6553
+    },
+    {
+     "name": "2025-01-19",
+     "a": 6591
+    },
+    {
+     "name": "2025-01-20",
+     "a": 6559
+    },
+    {
+     "name": "2025-01-21",
+     "a": 5978
+    },
+    {
+     "name": "2025-01-22",
+     "a": 6775
+    },
+    {
+     "name": "2025-01-23",
+     "a": 5807
+    },
+    {
+     "name": "2025-01-24",
+     "a": 6201
+    },
+    {
+     "name": "2025-01-25",
+     "a": 6498
+    },
+    {
+     "name": "2025-01-26",
+     "a": 6294
+    },
+    {
+     "name": "2025-01-27",
+     "a": 6134
+    },
+    {
+     "name": "2025-01-28",
+     "a": 6083
+    },
+    {
+     "name": "2025-01-29",
+     "a": 5758
+    },
+    {
+     "name": "2025-01-30",
+     "a": 5996
+    },
+    {
+     "name": "2025-01-31",
+     "a": 7293
+    },
+    {
+     "name": "2025-02-01",
+     "a": 5905
+    },
+    {
+     "name": "2025-02-02",
+     "a": 5496
+    },
+    {
+     "name": "2025-02-03",
+     "a": 6229
+    },
+    {
+     "name": "2025-02-04",
+     "a": 5462
+    },
+    {
+     "name": "2025-02-05",
+     "a": 6448
+    },
+    {
+     "name": "2025-02-06",
+     "a": 6398
+    },
+    {
+     "name": "2025-02-07",
+     "a": 6076
+    },
+    {
+     "name": "2025-02-08",
+     "a": 5482
+    },
+    {
+     "name": "2025-02-09",
+     "a": 5400
+    },
+    {
+     "name": "2025-02-10",
+     "a": 5793
+    },
+    {
+     "name": "2025-02-11",
+     "a": 5745
+    },
+    {
+     "name": "2025-02-12",
+     "a": 6445
+    },
+    {
+     "name": "2025-02-13",
+     "a": 5924
+    },
+    {
+     "name": "2025-02-14",
+     "a": 5809
+    },
+    {
+     "name": "2025-02-15",
+     "a": 4875
+    },
+    {
+     "name": "2025-02-16",
+     "a": 5088
+    },
+    {
+     "name": "2025-02-17",
+     "a": 6132
+    },
+    {
+     "name": "2025-02-18",
+     "a": 5541
+    },
+    {
+     "name": "2025-02-19",
+     "a": 6315
+    },
+    {
+     "name": "2025-02-20",
+     "a": 6037
+    },
+    {
+     "name": "2025-02-21",
+     "a": 5791
+    },
+    {
+     "name": "2025-02-22",
+     "a": 5882
+    },
+    {
+     "name": "2025-02-23",
+     "a": 5542
+    },
+    {
+     "name": "2025-02-24",
+     "a": 6180
+    },
+    {
+     "name": "2025-02-25",
+     "a": 6128
+    },
+    {
+     "name": "2025-02-26",
+     "a": 6053
+    },
+    {
+     "name": "2025-02-27",
+     "a": 6213
+    },
+    {
+     "name": "2025-02-28",
+     "a": 5766
+    },
+    {
+     "name": "2025-03-01",
+     "a": 5658
+    },
+    {
+     "name": "2025-03-02",
+     "a": 5391
+    },
+    {
+     "name": "2025-03-03",
+     "a": 6015
+    },
+    {
+     "name": "2025-03-04",
+     "a": 6416
+    },
+    {
+     "name": "2025-03-05",
+     "a": 6670
+    },
+    {
+     "name": "2025-03-06",
+     "a": 6463
+    },
+    {
+     "name": "2025-03-07",
+     "a": 6315
+    },
+    {
+     "name": "2025-03-08",
+     "a": 6357
+    },
+    {
+     "name": "2025-03-09",
+     "a": 5981
+    },
+    {
+     "name": "2025-03-10",
+     "a": 6303
+    },
+    {
+     "name": "2025-03-11",
+     "a": 6870
+    },
+    {
+     "name": "2025-03-12",
+     "a": 6086
+    },
+    {
+     "name": "2025-03-13",
+     "a": 5676
+    },
+    {
+     "name": "2025-03-14",
+     "a": 5904
+    },
+    {
+     "name": "2025-03-15",
+     "a": 6194
+    },
+    {
+     "name": "2025-03-16",
+     "a": 5201
+    },
+    {
+     "name": "2025-03-17",
+     "a": 6300
+    },
+    {
+     "name": "2025-03-18",
+     "a": 6329
+    },
+    {
+     "name": "2025-03-19",
+     "a": 6723
+    },
+    {
+     "name": "2025-03-20",
+     "a": 6082
+    },
+    {
+     "name": "2025-03-21",
+     "a": 6772
+    },
+    {
+     "name": "2025-03-22",
+     "a": 5705
+    },
+    {
+     "name": "2025-03-23",
+     "a": 5830
+    },
+    {
+     "name": "2025-03-24",
+     "a": 6388
+    },
+    {
+     "name": "2025-03-25",
+     "a": 5263
+    },
+    {
+     "name": "2025-03-26",
+     "a": 6495
+    },
+    {
+     "name": "2025-03-27",
+     "a": 5879
+    },
+    {
+     "name": "2025-03-28",
+     "a": 6669
+    },
+    {
+     "name": "2025-03-29",
+     "a": 6158
+    },
+    {
+     "name": "2025-03-30",
+     "a": 5702
+    },
+    {
+     "name": "2025-03-31",
+     "a": 6230
+    },
+    {
+     "name": "2025-04-01",
+     "a": 6549
+    },
+    {
+     "name": "2025-04-02",
+     "a": 6497
+    },
+    {
+     "name": "2025-04-03",
+     "a": 5712
+    },
+    {
+     "name": "2025-04-04",
+     "a": 6720
+    },
+    {
+     "name": "2025-04-05",
+     "a": 6006
+    },
+    {
+     "name": "2025-04-06",
+     "a": 5653
+    },
+    {
+     "name": "2025-04-07",
+     "a": 6444
+    },
+    {
+     "name": "2025-04-08",
+     "a": 5866
+    },
+    {
+     "name": "2025-04-09",
+     "a": 6095
+    },
+    {
+     "name": "2025-04-10",
+     "a": 6579
+    },
+    {
+     "name": "2025-04-11",
+     "a": 6666
+    },
+    {
+     "name": "2025-04-12",
+     "a": 6827
+    },
+    {
+     "name": "2025-04-13",
+     "a": 5729
+    },
+    {
+     "name": "2025-04-14",
+     "a": 6067
+    },
+    {
+     "name": "2025-04-15",
+     "a": 6540
+    },
+    {
+     "name": "2025-04-16",
+     "a": 6963
+    },
+    {
+     "name": "2025-04-17",
+     "a": 5966
+    },
+    {
+     "name": "2025-04-18",
+     "a": 5695
+    },
+    {
+     "name": "2025-04-19",
+     "a": 6446
+    },
+    {
+     "name": "2025-04-20",
+     "a": 5698
+    },
+    {
+     "name": "2025-04-21",
+     "a": 6357
+    },
+    {
+     "name": "2025-04-22",
+     "a": 6415
+    },
+    {
+     "name": "2025-04-23",
+     "a": 6223
+    },
+    {
+     "name": "2025-04-24",
+     "a": 6654
+    },
+    {
+     "name": "2025-04-25",
+     "a": 6090
+    },
+    {
+     "name": "2025-04-26",
+     "a": 5755
+    },
+    {
+     "name": "2025-04-27",
+     "a": 5512
+    },
+    {
+     "name": "2025-04-28",
+     "a": 5998
+    },
+    {
+     "name": "2025-04-29",
+     "a": 5897
+    },
+    {
+     "name": "2025-04-30",
+     "a": 6317
+    },
+    {
+     "name": "2025-05-01",
+     "a": 6183
+    },
+    {
+     "name": "2025-05-02",
+     "a": 6042
+    },
+    {
+     "name": "2025-05-03",
+     "a": 4817
+    },
+    {
+     "name": "2025-05-04",
+     "a": 5442
+    },
+    {
+     "name": "2025-05-05",
+     "a": 6525
+    },
+    {
+     "name": "2025-05-06",
+     "a": 5790
+    },
+    {
+     "name": "2025-05-07",
+     "a": 5699
+    },
+    {
+     "name": "2025-05-08",
+     "a": 6061
+    },
+    {
+     "name": "2025-05-09",
+     "a": 6233
+    },
+    {
+     "name": "2025-05-10",
+     "a": 5358
+    },
+    {
+     "name": "2025-05-11",
+     "a": 5361
+    },
+    {
+     "name": "2025-05-12",
+     "a": 5568
+    },
+    {
+     "name": "2025-05-13",
+     "a": 5536
+    },
+    {
+     "name": "2025-05-14",
+     "a": 5669
+    },
+    {
+     "name": "2025-05-15",
+     "a": 5675
+    },
+    {
+     "name": "2025-05-16",
+     "a": 6614
+    },
+    {
+     "name": "2025-05-17",
+     "a": 5254
+    },
+    {
+     "name": "2025-05-18",
+     "a": 5435
+    },
+    {
+     "name": "2025-05-19",
+     "a": 6261
+    },
+    {
+     "name": "2025-05-20",
+     "a": 5936
+    },
+    {
+     "name": "2025-05-21",
+     "a": 6411
+    },
+    {
+     "name": "2025-05-22",
+     "a": 6499
+    },
+    {
+     "name": "2025-05-23",
+     "a": 6031
+    },
+    {
+     "name": "2025-05-24",
+     "a": 6228
+    },
+    {
+     "name": "2025-05-25",
+     "a": 5375
+    },
+    {
+     "name": "2025-05-26",
+     "a": 5814
+    },
+    {
+     "name": "2025-05-27",
+     "a": 5645
+    },
+    {
+     "name": "2025-05-28",
+     "a": 5424
+    },
+    {
+     "name": "2025-05-29",
+     "a": 6271
+    },
+    {
+     "name": "2025-05-30",
+     "a": 6123
+    },
+    {
+     "name": "2025-05-31",
+     "a": 5495
+    },
+    {
+     "name": "2025-06-01",
+     "a": 4926
+    },
+    {
+     "name": "2025-06-02",
+     "a": 5817
+    },
+    {
+     "name": "2025-06-03",
+     "a": 5707
+    },
+    {
+     "name": "2025-06-04",
+     "a": 5857
+    },
+    {
+     "name": "2025-06-05",
+     "a": 5524
+    },
+    {
+     "name": "2025-06-06",
+     "a": 6374
+    },
+    {
+     "name": "2025-06-07",
+     "a": 5105
+    },
+    {
+     "name": "2025-06-08",
+     "a": 5384
+    },
+    {
+     "name": "2025-06-09",
+     "a": 6069
+    },
+    {
+     "name": "2025-06-10",
+     "a": 6333
+    },
+    {
+     "name": "2025-06-11",
+     "a": 5736
+    },
+    {
+     "name": "2025-06-12",
+     "a": 5177
+    },
+    {
+     "name": "2025-06-13",
+     "a": 6392
+    },
+    {
+     "name": "2025-06-14",
+     "a": 5484
+    },
+    {
+     "name": "2025-06-15",
+     "a": 5646
+    },
+    {
+     "name": "2025-06-16",
+     "a": 5218
+    },
+    {
+     "name": "2025-06-17",
+     "a": 5020
+    },
+    {
+     "name": "2025-06-18",
+     "a": 6068
+    },
+    {
+     "name": "2025-06-19",
+     "a": 5250
+    },
+    {
+     "name": "2025-06-20",
+     "a": 5733
+    },
+    {
+     "name": "2025-06-21",
+     "a": 5305
+    },
+    {
+     "name": "2025-06-22",
+     "a": 5390
+    },
+    {
+     "name": "2025-06-23",
+     "a": 5948
+    },
+    {
+     "name": "2025-06-24",
+     "a": 5562
+    },
+    {
+     "name": "2025-06-25",
+     "a": 5965
+    },
+    {
+     "name": "2025-06-26",
+     "a": 5645
+    },
+    {
+     "name": "2025-06-27",
+     "a": 6011
+    },
+    {
+     "name": "2025-06-28",
+     "a": 5221
+    },
+    {
+     "name": "2025-06-29",
+     "a": 5140
+    },
+    {
+     "name": "2025-06-30",
+     "a": 5922
+    },
+    {
+     "name": "2025-07-01",
+     "a": 4282
+    },
+    {
+     "name": "2025-07-02",
+     "a": 5483
+    },
+    {
+     "name": "2025-07-03",
+     "a": 4672
+    },
+    {
+     "name": "2025-07-04",
+     "a": 5517
+    },
+    {
+     "name": "2025-07-05",
+     "a": 4542
+    },
+    {
+     "name": "2025-07-06",
+     "a": 4673
+    },
+    {
+     "name": "2025-07-07",
+     "a": 5059
+    },
+    {
+     "name": "2025-07-08",
+     "a": 5183
+    },
+    {
+     "name": "2025-07-09",
+     "a": 5092
+    },
+    {
+     "name": "2025-07-10",
+     "a": 5061
+    },
+    {
+     "name": "2025-07-11",
+     "a": 4861
+    },
+    {
+     "name": "2025-07-12",
+     "a": 5104
+    },
+    {
+     "name": "2025-07-13",
+     "a": 5089
+    },
+    {
+     "name": "2025-07-14",
+     "a": 4795
+    },
+    {
+     "name": "2025-07-15",
+     "a": 5140
+    },
+    {
+     "name": "2025-07-16",
+     "a": 5660
+    },
+    {
+     "name": "2025-07-17",
+     "a": 5440
+    },
+    {
+     "name": "2025-07-18",
+     "a": 5145
+    },
+    {
+     "name": "2025-07-19",
+     "a": 4937
+    },
+    {
+     "name": "2025-07-20",
+     "a": 4791
+    },
+    {
+     "name": "2025-07-21",
+     "a": 5356
+    },
+    {
+     "name": "2025-07-22",
+     "a": 5222
+    },
+    {
+     "name": "2025-07-23",
+     "a": 5061
+    },
+    {
+     "name": "2025-07-24",
+     "a": 5357
+    },
+    {
+     "name": "2025-07-25",
+     "a": 4606
+    },
+    {
+     "name": "2025-07-26",
+     "a": 4613
+    },
+    {
+     "name": "2025-07-27",
+     "a": 4670
+    },
+    {
+     "name": "2025-07-28",
+     "a": 5284
+    },
+    {
+     "name": "2025-07-29",
+     "a": 5608
+    },
+    {
+     "name": "2025-07-30",
+     "a": 5313
+    },
+    {
+     "name": "2025-07-31",
+     "a": 4716
+    },
+    {
+     "name": "2025-08-01",
+     "a": 5146
+    },
+    {
+     "name": "2025-08-02",
+     "a": 5000
+    },
+    {
+     "name": "2025-08-03",
+     "a": 5005
+    },
+    {
+     "name": "2025-08-04",
+     "a": 5345
+    },
+    {
+     "name": "2025-08-05",
+     "a": 5132
+    },
+    {
+     "name": "2025-08-06",
+     "a": 5438
+    },
+    {
+     "name": "2025-08-07",
+     "a": 5406
+    },
+    {
+     "name": "2025-08-08",
+     "a": 4876
+    },
+    {
+     "name": "2025-08-09",
+     "a": 4929
+    },
+    {
+     "name": "2025-08-10",
+     "a": 5033
+    },
+    {
+     "name": "2025-08-11",
+     "a": 4973
+    },
+    {
+     "name": "2025-08-12",
+     "a": 5519
+    },
+    {
+     "name": "2025-08-13",
+     "a": 5528
+    },
+    {
+     "name": "2025-08-14",
+     "a": 4581
+    },
+    {
+     "name": "2025-08-15",
+     "a": 4886
+    },
+    {
+     "name": "2025-08-16",
+     "a": 4990
+    },
+    {
+     "name": "2025-08-17",
+     "a": 4845
+    },
+    {
+     "name": "2025-08-18",
+     "a": 5008
+    },
+    {
+     "name": "2025-08-19",
+     "a": 4705
+    },
+    {
+     "name": "2025-08-20",
+     "a": 5204
+    },
+    {
+     "name": "2025-08-21",
+     "a": 4614
+    },
+    {
+     "name": "2025-08-22",
+     "a": 5078
+    },
+    {
+     "name": "2025-08-23",
+     "a": 4729
+    },
+    {
+     "name": "2025-08-24",
+     "a": 5235
+    },
+    {
+     "name": "2025-08-25",
+     "a": 5215
+    },
+    {
+     "name": "2025-08-26",
+     "a": 5238
+    },
+    {
+     "name": "2025-08-27",
+     "a": 5063
+    },
+    {
+     "name": "2025-08-28",
+     "a": 5036
+    },
+    {
+     "name": "2025-08-29",
+     "a": 5579
+    },
+    {
+     "name": "2025-08-30",
+     "a": 4766
+    },
+    {
+     "name": "2025-08-31",
+     "a": 4910
+    },
+    {
+     "name": "2025-09-01",
+     "a": 5989
+    },
+    {
+     "name": "2025-09-02",
+     "a": 5805
+    },
+    {
+     "name": "2025-09-03",
+     "a": 5871
+    },
+    {
+     "name": "2025-09-04",
+     "a": 5138
+    },
+    {
+     "name": "2025-09-05",
+     "a": 5789
+    },
+    {
+     "name": "2025-09-06",
+     "a": 5990
+    },
+    {
+     "name": "2025-09-07",
+     "a": 5168
+    },
+    {
+     "name": "2025-09-08",
+     "a": 5079
+    },
+    {
+     "name": "2025-09-09",
+     "a": 5126
+    },
+    {
+     "name": "2025-09-10",
+     "a": 5016
+    },
+    {
+     "name": "2025-09-11",
+     "a": 5626
+    },
+    {
+     "name": "2025-09-12",
+     "a": 6000
+    },
+    {
+     "name": "2025-09-13",
+     "a": 5311
+    },
+    {
+     "name": "2025-09-14",
+     "a": 5738
+    },
+    {
+     "name": "2025-09-15",
+     "a": 6084
+    },
+    {
+     "name": "2025-09-16",
+     "a": 6194
+    },
+    {
+     "name": "2025-09-17",
+     "a": 5212
+    },
+    {
+     "name": "2025-09-18",
+     "a": 5803
+    },
+    {
+     "name": "2025-09-19",
+     "a": 5764
+    },
+    {
+     "name": "2025-09-20",
+     "a": 4899
+    },
+    {
+     "name": "2025-09-21",
+     "a": 4948
+    },
+    {
+     "name": "2025-09-22",
+     "a": 5636
+    },
+    {
+     "name": "2025-09-23",
+     "a": 6481
+    },
+    {
+     "name": "2025-09-24",
+     "a": 5916
+    },
+    {
+     "name": "2025-09-25",
+     "a": 6168
+    },
+    {
+     "name": "2025-09-26",
+     "a": 6308
+    },
+    {
+     "name": "2025-09-27",
+     "a": 5493
+    },
+    {
+     "name": "2025-09-28",
+     "a": 5134
+    },
+    {
+     "name": "2025-09-29",
+     "a": 5316
+    },
+    {
+     "name": "2025-09-30",
+     "a": 6255
+    },
+    {
+     "name": "2025-10-01",
+     "a": 6242
+    },
+    {
+     "name": "2025-10-02",
+     "a": 6029
+    },
+    {
+     "name": "2025-10-03",
+     "a": 6240
+    },
+    {
+     "name": "2025-10-04",
+     "a": 5892
+    },
+    {
+     "name": "2025-10-05",
+     "a": 4844
+    },
+    {
+     "name": "2025-10-06",
+     "a": 6242
+    },
+    {
+     "name": "2025-10-07",
+     "a": 6354
+    },
+    {
+     "name": "2025-10-08",
+     "a": 6291
+    },
+    {
+     "name": "2025-10-09",
+     "a": 6335
+    },
+    {
+     "name": "2025-10-10",
+     "a": 5833
+    },
+    {
+     "name": "2025-10-11",
+     "a": 6005
+    },
+    {
+     "name": "2025-10-12",
+     "a": 5598
+    },
+    {
+     "name": "2025-10-13",
+     "a": 6138
+    },
+    {
+     "name": "2025-10-14",
+     "a": 6027
+    },
+    {
+     "name": "2025-10-15",
+     "a": 6019
+    },
+    {
+     "name": "2025-10-16",
+     "a": 6184
+    },
+    {
+     "name": "2025-10-17",
+     "a": 6569
+    },
+    {
+     "name": "2025-10-18",
+     "a": 6170
+    },
+    {
+     "name": "2025-10-19",
+     "a": 5597
+    },
+    {
+     "name": "2025-10-20",
+     "a": 6105
+    },
+    {
+     "name": "2025-10-21",
+     "a": 6585
+    },
+    {
+     "name": "2025-10-22",
+     "a": 5655
+    },
+    {
+     "name": "2025-10-23",
+     "a": 6079
+    },
+    {
+     "name": "2025-10-24",
+     "a": 5358
+    },
+    {
+     "name": "2025-10-25",
+     "a": 5613
+    },
+    {
+     "name": "2025-10-26",
+     "a": 5599
+    },
+    {
+     "name": "2025-10-27",
+     "a": 6120
+    },
+    {
+     "name": "2025-10-28",
+     "a": 6409
+    },
+    {
+     "name": "2025-10-29",
+     "a": 6070
+    },
+    {
+     "name": "2025-10-30",
+     "a": 6692
+    },
+    {
+     "name": "2025-10-31",
+     "a": 7137
+    },
+    {
+     "name": "2025-11-01",
+     "a": 5565
+    },
+    {
+     "name": "2025-11-02",
+     "a": 6546
+    },
+    {
+     "name": "2025-11-03",
+     "a": 7211
+    },
+    {
+     "name": "2025-11-04",
+     "a": 6506
+    },
+    {
+     "name": "2025-11-05",
+     "a": 6126
+    },
+    {
+     "name": "2025-11-06",
+     "a": 6611
+    },
+    {
+     "name": "2025-11-07",
+     "a": 6523
+    },
+    {
+     "name": "2025-11-08",
+     "a": 5869
+    },
+    {
+     "name": "2025-11-09",
+     "a": 6081
+    },
+    {
+     "name": "2025-11-10",
+     "a": 6395
+    },
+    {
+     "name": "2025-11-11",
+     "a": 5644
+    },
+    {
+     "name": "2025-11-12",
+     "a": 6634
+    },
+    {
+     "name": "2025-11-13",
+     "a": 6742
+    },
+    {
+     "name": "2025-11-14",
+     "a": 6811
+    },
+    {
+     "name": "2025-11-15",
+     "a": 6684
+    },
+    {
+     "name": "2025-11-16",
+     "a": 5996
+    },
+    {
+     "name": "2025-11-17",
+     "a": 6018
+    },
+    {
+     "name": "2025-11-18",
+     "a": 5913
+    },
+    {
+     "name": "2025-11-19",
+     "a": 6576
+    },
+    {
+     "name": "2025-11-20",
+     "a": 6368
+    },
+    {
+     "name": "2025-11-21",
+     "a": 6346
+    },
+    {
+     "name": "2025-11-22",
+     "a": 6287
+    },
+    {
+     "name": "2025-11-23",
+     "a": 6560
+    },
+    {
+     "name": "2025-11-24",
+     "a": 6701
+    },
+    {
+     "name": "2025-11-25",
+     "a": 6419
+    },
+    {
+     "name": "2025-11-26",
+     "a": 6217
+    },
+    {
+     "name": "2025-11-27",
+     "a": 6500
+    },
+    {
+     "name": "2025-11-28",
+     "a": 6603
+    },
+    {
+     "name": "2025-11-29",
+     "a": 5640
+    },
+    {
+     "name": "2025-11-30",
+     "a": 5990
+    },
+    {
+     "name": "2025-12-01",
+     "a": 6288
+    },
+    {
+     "name": "2025-12-02",
+     "a": 6752
+    },
+    {
+     "name": "2025-12-03",
+     "a": 6769
+    },
+    {
+     "name": "2025-12-04",
+     "a": 6475
+    },
+    {
+     "name": "2025-12-05",
+     "a": 6660
+    },
+    {
+     "name": "2025-12-06",
+     "a": 6018
+    },
+    {
+     "name": "2025-12-07",
+     "a": 6774
+    },
+    {
+     "name": "2025-12-08",
+     "a": 6488
+    },
+    {
+     "name": "2025-12-09",
+     "a": 6471
+    },
+    {
+     "name": "2025-12-10",
+     "a": 7084
+    },
+    {
+     "name": "2025-12-11",
+     "a": 6944
+    },
+    {
+     "name": "2025-12-12",
+     "a": 6683
+    },
+    {
+     "name": "2025-12-13",
+     "a": 6470
+    },
+    {
+     "name": "2025-12-14",
+     "a": 6252
+    },
+    {
+     "name": "2025-12-15",
+     "a": 7073
+    },
+    {
+     "name": "2025-12-16",
+     "a": 6636
+    },
+    {
+     "name": "2025-12-17",
+     "a": 7128
+    },
+    {
+     "name": "2025-12-18",
+     "a": 6759
+    },
+    {
+     "name": "2025-12-19",
+     "a": 7230
+    },
+    {
+     "name": "2025-12-20",
+     "a": 6226
+    },
+    {
+     "name": "2025-12-21",
+     "a": 6088
+    },
+    {
+     "name": "2025-12-22",
+     "a": 6461
+    },
+    {
+     "name": "2025-12-23",
+     "a": 7084
+    },
+    {
+     "name": "2025-12-24",
+     "a": 6353
+    },
+    {
+     "name": "2025-12-25",
+     "a": 6669
+    },
+    {
+     "name": "2025-12-26",
+     "a": 6743
+    },
+    {
+     "name": "2025-12-27",
+     "a": 6266
+    },
+    {
+     "name": "2025-12-28",
+     "a": 6358
+    },
+    {
+     "name": "2025-12-29",
+     "a": 6812
+    },
+    {
+     "name": "2025-12-30",
+     "a": 7115
+    },
+    {
+     "name": "2025-12-31",
+     "a": 6941
+    }
+   ]
+  }
+ ]
+};
 /* ===== Drawing code below: do not edit ===== */
+/* ===== CHARTS_JS START ===== */
 /* 画图：哑铃图、华夫饼图、子弹图、日历热力图，加上条形、柱形、折线、环形、堆积柱形、瀑布图和数字卡。画布尺寸取自 canvas 本身：1080×1440（小红书 3:4）为基准，
    其他尺寸（如 1920×1080 的 PPT 16:9）按比例 s 缩放。只用 Canvas 2D，ES2017。
    小工具和 excel-charts Skill 共用这一份代码，改这里两边一起变。 */
@@ -2235,11 +2307,64 @@ var CHARTS = [
   var FONT_EN = '"Segoe UI","Helvetica Neue",Arial,' + FONT_ZH;
   var FONT = FONT_ZH;
 
+  // 十六进制颜色：#RGB 补成 #RRGGBB，不是十六进制就返回空
+  function hex6(c) {
+    var m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c || '').trim());
+    if (!m) return '';
+    var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
+    return '#' + h.toUpperCase();
+  }
+  function mixHex(c1, c2, t) {
+    var a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16), out = '#';
+    [16, 8, 0].forEach(function (sh) {
+      var x = (a >> sh) & 255, y = (b >> sh) & 255, v = Math.round(x + (y - x) * t);
+      out += (v < 16 ? '0' : '') + v.toString(16);
+    });
+    return out.toUpperCase();
+  }
+  function luma(c) {
+    var n = parseInt(c.slice(1), 16);
+    return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  }
+
+  // 自定义配色：theme 传对象时用，比如从别人的幻灯片模板里读出来的颜色。
+  // 只给 card（底色）、ink（文字）、acc（强调色）也行，其余按深浅从这几个推出来
+  function customTheme(o) {
+    var card0 = hex6(o.card) || hex6(o.bg);
+    var base = card0 && luma(card0) < 0.45 ? THEMES.navy : THEMES.latte;
+    var card = card0 || base.card, ink = hex6(o.ink) || base.ink;
+    var cats = (o.cats || []).map(hex6).filter(Boolean);
+    var acc = hex6(o.acc) || cats[0] || base.acc;
+    if (!cats.length || cats[0] !== acc) cats = [acc].concat(cats);
+    // 不够 6 个就从预设里补，跳过和已有颜色太像的
+    var dist = function (x, y) {
+      var a = parseInt(x.slice(1), 16), b = parseInt(y.slice(1), 16), d = 0;
+      [16, 8, 0].forEach(function (sh) { var k = ((a >> sh) & 255) - ((b >> sh) & 255); d += k * k; });
+      return Math.sqrt(d);
+    };
+    var pool = base.cats.concat(base === THEMES.navy ? THEMES.latte.cats : THEMES.navy.cats, THEMES.mist.cats);
+    [90, 60, 30, -1].forEach(function (lim) {
+      pool.forEach(function (c) {
+        if (cats.length < 6 && cats.every(function (x) { return dist(x, c) > lim && x !== c; })) cats.push(c);
+      });
+    });
+    return {
+      name: o.name || 'custom', bg: hex6(o.bg) || card, card: card, ink: ink,
+      ink2: hex6(o.ink2) || mixHex(card, ink, 0.6), rule: hex6(o.rule) || mixHex(card, ink, 0.12),
+      acc: acc, start: hex6(o.start) || mixHex(card, ink, 0.32), down: hex6(o.down) || base.down,
+      shadow: base.shadow, cats: cats.slice(0, 6),
+      bands: [mixHex(card, ink, 0.16), mixHex(card, ink, 0.09), mixHex(card, ink, 0.04)],
+      font: o.font ? String(o.font) : ''
+    };
+  }
+
   function useTheme(opt) {
-    C = THEMES[opt && opt.theme] || THEMES.latte;
+    var t = opt && opt.theme;
+    C = t && typeof t === 'object' ? customTheme(t) : THEMES[t] || THEMES.latte;
     var en = !!(opt && opt.lang === 'en');
     T = en ? TEXT.en : TEXT.zh;
     FONT = en ? FONT_EN : FONT_ZH;
+    if (C.font) FONT = C.font + ',' + FONT;
   }
 
   function font(size, weight) { return (weight || 400) + ' ' + (size * s) + 'px ' + FONT; }
@@ -2280,6 +2405,7 @@ var CHARTS = [
   // 标题、副标题、卡片、署名：三种图共用。返回卡片内可画图的区域。
   function frame(ctx, opt) {
     if (opt.panel) return panelFrame(ctx, opt);
+    if (opt.bare) return bareFrame(ctx, opt);
     setup(ctx);
     useTheme(opt);
     ctx.fillStyle = C.bg;
@@ -3044,12 +3170,14 @@ var CHARTS = [
   // ⑪ 数字卡：每行一个指标（名称、本期、对比期），最多 6 个；有对比期就写涨跌
   function kpi(ctx, d, opt) {
     var a = frame(ctx, opt);
+    // 只画图时画布往往很扁：字号按宽度定，别被高度压得太小
+    if (opt.bare) s = Math.max(s, Math.min(W / 1400 * (opt.fontScale || 1), a.h / 380));
     var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a), b: num(r.b), unit: r.unit || d.unit || '' }; })
       .filter(function (r) { return r.name && isFinite(r.v); }).slice(0, 6);
     if (!rows.length) return empty(ctx, a, opt);
 
     var wide = a.w > a.h * 1.2, n = rows.length;
-    var cols = d.cols ? Math.min(d.cols, n) : n === 1 ? 1 : wide ? Math.min(3, n) : 2, rowsN = Math.ceil(n / cols);
+    var cols = d.cols ? Math.min(d.cols, n) : n === 1 ? 1 : opt.bare && wide ? (n <= 3 ? n : a.w > a.h * 2.4 ? Math.min(n, 4) : Math.ceil(n / 2)) : wide ? Math.min(3, n) : 2, rowsN = Math.ceil(n / cols);
     var cw = a.w / cols, ch = Math.min(a.h / rowsN, u(wide ? 420 : 360));
     var gy = a.y + (a.h - ch * rowsN) / 2;
     ctx.strokeStyle = C.rule;
@@ -3098,6 +3226,17 @@ var CHARTS = [
 
   /* ===== 看板：几张图拼成一页 ===== */
 
+  // 只画图：没有标题、卡片和背景（透明），用来放进报告、幻灯片或别人的模板里。
+  // 字号比例按 1200×750 算：1600×900 的图缩到幻灯片或报告的宽度时，字正好能看清
+  function bareFrame(ctx, opt) {
+    setup(ctx);
+    useTheme(opt);
+    s = Math.min(W / 1200, H / 750) * (opt.fontScale || 1);   // 幻灯片上离得远，可以把字放大
+    ctx.clearRect(0, 0, W, H);
+    var p = u(16);
+    return { x: p, y: p, w: W - p * 2, h: H - p * 2 };
+  }
+
   // 看板里的一个格子：卡片 + 左上角小标题，返回格子里能画图的区域。字号比例 s 由整页统一定，不随格子大小变
   function panelFrame(ctx, opt) {
     var p = opt.panel;
@@ -3133,7 +3272,7 @@ var CHARTS = [
   // 排版：第一个格子是数字卡时单独占一整行；其余的图横版每行 2–3 个，长图每行 1 个。
   // 横版 1920×1080（PPT、投屏），长图宽 1080、高度按格子数算（手机）
   function dashLayout(d, W, H) {
-    var panels = (d.panels || []).filter(function (p) { return p && Charts[p.kind] && p.kind !== 'dashboard'; }).slice(0, 7);
+    var panels = (d.panels || []).filter(function (p) { return p && API[p.kind] && p.kind !== 'dashboard' && p.kind !== 'palette'; }).slice(0, 7);
     var wideMode = W > H, out = [];
     var kp = panels.length && panels[0].kind === 'kpi' ? panels[0] : null, rest = kp ? panels.slice(1) : panels;
     var nk = kp ? Math.min(6, (kp.rows || []).length) : 0;
@@ -3195,7 +3334,7 @@ var CHARTS = [
     L.panels.forEach(function (it) {
       var p = it.p, dd = p;
       if (it.cols) { dd = {}; for (var key in p) dd[key] = p[key]; dd.cols = it.cols; }
-      Charts[p.kind](ctx, dd, { title: p.title, subtitle: p.subtitle, theme: opt.theme, lang: opt.lang, panel: it.r,
+      API[p.kind](ctx, dd, { title: p.title, subtitle: p.subtitle, theme: opt.theme, lang: opt.lang, panel: it.r,
         emptyText: opt.emptyText });
     });
     if (opt.sign) {
@@ -3215,83 +3354,267 @@ var CHARTS = [
     ctx.fillText(opt.emptyText || T.empty, a.x + a.w / 2, a.y + a.h / 2);
   }
 
-  window.Charts = { dumbbell: dumbbell, waffle: waffle, bullet: bullet, calendar: calendar,
-    bar: bar, column: column, line: line, donut: donut, stacked: stacked, waterfall: waterfall, kpi: kpi,
-    dashboard: dashboard, dashboardHeight: dashboardHeight,
-    num: num, THEMES: THEMES, parseDate: parseDate, dateKey: dateKey };
-})();
-(function () {
-  var LANG = 'en';
-  var UI = {
-    zh: { lead: '每张图有两个尺寸：3:4 适合手机，16:9 适合放进 PPT。点按钮下载 PNG。', themes: '配色：', each: '按各图设置',
-      latte: '燕麦拿铁', mist: '雾霾蓝', navy: '深夜蓝', d34: '下载 3:4 PNG', d169: '下载 16:9 PNG', dlong: '下载手机长图 PNG',
-      empty: '没有可画的数据' },
-    en: { lead: 'Each chart comes in two sizes: 3:4 for phones, 16:9 for slides. Click a button to download the PNG.', themes: 'Theme: ',
-      each: 'As set per chart', latte: 'Oat Latte', mist: 'Mist Blue', navy: 'Midnight Navy', d34: 'Download 3:4 PNG',
-      d169: 'Download 16:9 PNG', dlong: 'Download phone (long) PNG', empty: 'No data to draw' }
-  }[LANG];
-  document.getElementById('lead').textContent = UI.lead;
-  document.getElementById('themes').textContent = UI.themes;
-  var SIZES = [{ key: '3x4', w: 1080, h: 1440, cls: 'c34', label: UI.d34 },
-               { key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 }];
-  var NAMES = { latte: UI.latte, mist: UI.mist, navy: UI.navy };
-  var theme = '';  // empty = each chart uses its own theme (Oat Latte if none)
-  var canvases = [];
-  var list = document.getElementById('list');
+  // 解析后的配色（预设名或自定义对象都行），给网页的 CSS 用
+  function palette(opt) { useTheme(opt || {}); return C; }
 
+  var API = { dumbbell: dumbbell, waffle: waffle, bullet: bullet, calendar: calendar,
+    bar: bar, column: column, line: line, donut: donut, stacked: stacked, waterfall: waterfall, kpi: kpi,
+    dashboard: dashboard, dashboardHeight: dashboardHeight, palette: palette,
+    num: num, THEMES: THEMES, parseDate: parseDate, dateKey: dateKey };
+  window.Charts = API;
+})();
+/* ===== CHARTS_JS END ===== */
+(function () {
+  var LANG = DOC.lang || 'en';
+  var UI = {
+    zh: { lead: '每张图有三种下载：3:4 适合手机，16:9 适合放进 PPT，「只下载图」是透明背景，可以放进任何模板。', themes: '配色：', each: '按各图设置',
+      latte: '燕麦拿铁', mist: '雾霾蓝', navy: '深夜蓝', custom: '自定义', d34: '下载 3:4 PNG', d169: '下载 16:9 PNG', dlong: '下载手机长图 PNG',
+      dbare: '只下载图（透明背景 PNG）', empty: '没有可画的数据', findings: '主要发现', notes: '数据说明', print: '打印 / 存成 PDF',
+      hint: '← → 翻页 · F 全屏 · 打印可存成 PDF', summary: '主要发现', about: '数据说明' },
+    en: { lead: 'Each chart downloads three ways: 3:4 for phones, 16:9 for slides, and "chart only" with a transparent background for any template.', themes: 'Theme: ',
+      each: 'As set per chart', latte: 'Oat Latte', mist: 'Mist Blue', navy: 'Midnight Navy', custom: 'Custom', d34: 'Download 3:4 PNG',
+      d169: 'Download 16:9 PNG', dlong: 'Download phone (long) PNG', dbare: 'Chart only (transparent PNG)', empty: 'No data to draw',
+      findings: 'Key findings', notes: 'About the data', print: 'Print / save as PDF', hint: '← → to move · F full screen · print to save as PDF',
+      summary: 'Key findings', about: 'About the data' }
+  }[LANG === 'en' ? 'en' : 'zh'];
+  var FONTS = LANG === 'en' ? '"Segoe UI", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif'
+                            : '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
+  var MODE = DOC.mode === 'report' || DOC.mode === 'slides' ? DOC.mode : 'charts';
+  var app = document.getElementById('app');
+  var theme = DOC.theme || '';     // a preset name, or an object with custom colors
+  var drawn = [];                  // canvases drawn so far, redrawn when the theme changes
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+  function setVars() {
+    var p = Charts.palette({ theme: theme || 'latte', lang: LANG }), r = document.documentElement.style;
+    r.setProperty('--bg', p.bg); r.setProperty('--card', p.card); r.setProperty('--ink', p.ink);
+    r.setProperty('--ink2', p.ink2); r.setProperty('--rule', p.rule); r.setProperty('--acc', p.acc);
+    r.setProperty('--font', (p.font ? p.font + ', ' : '') + FONTS);
+  }
   function draw(item) {
-    var c = item.c;
-    Charts[c.kind](item.cv.getContext('2d'), c, { title: c.title, subtitle: c.subtitle, sign: c.sign || false,
-      theme: theme || c.theme || 'latte', lang: c.lang || LANG, emptyText: UI.empty });
+    var c = item.c, k = c.kind;
+    if (!Charts[k] || k === 'palette') return;
+    Charts[k](item.cv.getContext('2d'), c, { title: item.bare ? '' : c.title, subtitle: item.bare ? '' : c.subtitle,
+      sign: item.bare ? false : (c.sign || DOC.sign || false), bare: !!item.bare, fontScale: MODE === 'slides' ? 1.3 : 1,
+      theme: (MODE === 'charts' ? theme || c.theme : theme) || 'latte', lang: c.lang || LANG, emptyText: UI.empty });
+  }
+  function canvas(c, w, h, bare, cls) {
+    var cv = el('canvas', cls);
+    cv.width = w; cv.height = h;
+    var item = { c: c, cv: cv, bare: bare };
+    drawn.push(item);
+    draw(item);
+    return cv;
+  }
+  // canvas height for chart-only (bare) drawing: shorter for KPI cards, taller for calendars
+  function bareSize(c, w) {
+    return [w, Math.round(w * (c.kind === 'kpi' ? 0.36 : c.kind === 'calendar' ? 0.62 : 0.5625))];
+  }
+  function download(cv, name) {
+    var a = document.createElement('a');
+    a.href = cv.toDataURL('image/png');
+    a.download = name + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function themeBar(withEach, extra) {
+    var bar = el('div', 'bar no-print', UI.themes);
+    var custom = theme && typeof theme === 'object' ? theme : null;
+    var keys = (custom ? ['custom'] : []).concat(withEach ? [''] : [], ['latte', 'mist', 'navy']);
+    var cur = custom ? 'custom' : theme || (withEach ? '' : 'latte');
+    keys.forEach(function (k) {
+      var b = el('button', k === cur ? 'on' : '', k ? UI[k] : UI.each);
+      b.addEventListener('click', function () {
+        theme = k === 'custom' ? custom : k;
+        Array.prototype.forEach.call(bar.querySelectorAll('button:not(.print)'), function (x) { x.className = x === b ? 'on' : ''; });
+        setVars();
+        drawn.forEach(draw);
+      });
+      bar.appendChild(b);
+    });
+    if (extra) bar.appendChild(extra);
+    return bar;
+  }
+  function list(tag, cls, items) {
+    var l = el(tag, cls);
+    items.forEach(function (t) { l.appendChild(el('li', '', t)); });
+    return l;
   }
 
-  var bar = document.getElementById('themes');
-  [''].concat(Object.keys(NAMES)).forEach(function (k) {
-    var b = document.createElement('button');
-    b.textContent = k ? NAMES[k] : UI.each;
-    b.className = k === theme ? 'on' : '';
-    b.addEventListener('click', function () {
-      theme = k;
-      Array.prototype.forEach.call(bar.querySelectorAll('button'), function (x) { x.className = x === b ? 'on' : ''; });
-      canvases.forEach(draw);
-    });
-    bar.appendChild(b);
-  });
-
-  CHARTS.forEach(function (c, i) {
-    if (!Charts[c.kind]) return;
-    var fig = document.createElement('figure');
-    var cap = document.createElement('figcaption');
-    cap.textContent = (i + 1) + '. ' + (c.title || c.kind);
-    fig.appendChild(cap);
-    var pair = document.createElement('div');
-    pair.className = 'pair';
-    var sizes = c.kind !== 'dashboard' ? SIZES :
-      [{ key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
-       { key: 'long', w: 1080, h: Charts.dashboardHeight(c, 1080), cls: 'c34', label: UI.dlong }];
-    sizes.forEach(function (sz) {
-      var box = document.createElement('div');
-      var cv = document.createElement('canvas');
-      cv.width = sz.w; cv.height = sz.h; cv.className = sz.cls;
-      cv.id = 'chart-' + (i + 1) + '-' + sz.key;
-      var item = { c: c, cv: cv };
-      canvases.push(item);
-      draw(item);
-      var btn = document.createElement('button');
-      btn.className = 'dl';
-      btn.textContent = sz.label;
-      btn.addEventListener('click', function () {
-        var a = document.createElement('a');
-        a.href = cv.toDataURL('image/png');
-        a.download = (c.file || ('chart-' + (i + 1))) + '-' + sz.key + '.png';
-        document.body.appendChild(a); a.click(); a.remove();
+  // ---------- charts: download each chart ----------
+  function gallery() {
+    var wrap = el('main', 'gallery');
+    wrap.appendChild(el('h1', '', DOC.title || 'excel-charts'));
+    wrap.appendChild(el('p', 'lead', UI.lead));
+    wrap.appendChild(themeBar(true));
+    (DOC.charts || []).forEach(function (c, i) {
+      if (!Charts[c.kind] || c.kind === 'palette') return;
+      var fig = el('figure');
+      fig.appendChild(el('figcaption', '', (i + 1) + '. ' + (c.title || c.kind)));
+      var pair = el('div', 'pair');
+      var sizes = c.kind === 'dashboard'
+        ? [{ key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
+           { key: 'long', w: 1080, h: Charts.dashboardHeight(c, 1080), cls: 'c34', label: UI.dlong }]
+        : [{ key: '3x4', w: 1080, h: 1440, cls: 'c34', label: UI.d34 },
+           { key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
+           { key: 'chart', bare: true, cls: 'cbare', label: UI.dbare }];
+      sizes.forEach(function (sz) {
+        var box = el('div');
+        var wh = sz.bare ? bareSize(c, 1600) : [sz.w, sz.h];
+        var cv = canvas(c, wh[0], wh[1], !!sz.bare, sz.cls);
+        cv.id = 'chart-' + (i + 1) + '-' + sz.key;
+        var btn = el('button', 'dl', sz.label);
+        btn.addEventListener('click', function () { download(cv, (c.file || ('chart-' + (i + 1))) + '-' + sz.key); });
+        box.appendChild(cv); box.appendChild(btn);
+        pair.appendChild(box);
       });
-      box.appendChild(cv); box.appendChild(btn);
-      pair.appendChild(box);
+      fig.appendChild(pair);
+      wrap.appendChild(fig);
     });
-    fig.appendChild(pair);
-    list.appendChild(fig);
-  });
+    app.appendChild(wrap);
+  }
+
+  // ---------- report: one long page, prints to A4 PDF ----------
+  function report() {
+    var wrap = el('main', 'report');
+    var pb = el('button', 'print', UI.print);
+    pb.addEventListener('click', function () { window.print(); });
+    wrap.appendChild(themeBar(false, pb));
+    var head = el('header');
+    head.appendChild(el('h1', '', DOC.title || ''));
+    if (DOC.subtitle) head.appendChild(el('p', 'sub', DOC.subtitle));
+    var meta = [DOC.author, DOC.date].filter(Boolean).join(' · ');
+    if (meta) head.appendChild(el('div', 'meta', meta));
+    wrap.appendChild(head);
+    if (DOC.summary && DOC.summary.length) {
+      var f = el('section', 'findings');
+      f.appendChild(el('h2', '', UI.findings));
+      f.appendChild(list('ol', '', DOC.summary));
+      wrap.appendChild(f);
+    }
+    (DOC.sections || []).forEach(function (c, i) {
+      var sec = el('section', 'sec');
+      sec.appendChild(el('h2', '', c.title || ''));
+      if (c.subtitle) sec.appendChild(el('div', 'unit', c.subtitle));
+      if (Charts[c.kind] && c.kind !== 'palette') {
+        var dash = c.kind === 'dashboard';
+        var wh = dash ? [1920, 1080] : bareSize(c, 1600);
+        var cv = canvas(c, wh[0], wh[1], !dash);
+        cv.id = 'chart-' + (i + 1);
+        sec.appendChild(cv);
+      }
+      if (c.text) sec.appendChild(el('p', '', c.text));
+      if (c.points && c.points.length) sec.appendChild(list('ul', '', c.points));
+      wrap.appendChild(sec);
+    });
+    if (DOC.notes && DOC.notes.length) {
+      var n = el('section', 'notes');
+      n.appendChild(el('h2', '', UI.notes));
+      n.appendChild(list('ul', '', DOC.notes));
+      wrap.appendChild(n);
+    }
+    if (DOC.sign) wrap.appendChild(el('div', 'foot', DOC.sign));
+    app.appendChild(wrap);
+  }
+
+  // ---------- slides: 1920x1080, keyboard navigation, prints one slide per PDF page ----------
+  function slides() {
+    document.body.className = 'deck';
+    var wrapEl = el('div', 'stage-wrap'), stage = el('div', 'stage');
+    wrapEl.appendChild(stage);
+    app.appendChild(wrapEl);
+    var all = [];
+    function slide() { var s = el('section', 'slide'); stage.appendChild(s); all.push(s); return s; }
+
+    var cover = slide();
+    cover.appendChild(el('div', 'rulebar'));
+    if (DOC.kicker) cover.appendChild(el('div', 'kicker', DOC.kicker));
+    cover.appendChild(el('h1', '', DOC.title || ''));
+    if (DOC.subtitle) cover.appendChild(el('div', 'cover-sub', DOC.subtitle));
+    var meta = [DOC.author, DOC.date].filter(Boolean).join(' · ');
+    if (meta) cover.appendChild(el('div', 'cover-meta', meta));
+
+    if (DOC.summary && DOC.summary.length) {
+      var sm = slide();
+      sm.appendChild(el('div', 'kicker', UI.summary));
+      sm.appendChild(el('h2', '', DOC.summaryTitle || DOC.title || ''));
+      sm.appendChild(list('ol', 'big', DOC.summary.slice(0, 4)));
+    }
+
+    (DOC.sections || []).forEach(function (c, i) {
+      var sl = slide();
+      if (c.kicker) sl.appendChild(el('div', 'kicker', c.kicker));
+      sl.appendChild(el('h2', '', c.title || ''));
+      if (c.subtitle) sl.appendChild(el('div', 'unit', c.subtitle));
+      var body = el('div', 'body'), pts = (c.points || []).slice(0, 4);
+      var hasChart = Charts[c.kind] && c.kind !== 'palette';
+      if (hasChart) {
+        var box = el('div', 'chartbox'), dash = c.kind === 'dashboard';
+        // chart area: about 1068x614 with points, 1624x614 without; drawn at 1.5x to stay sharp
+        var w = (pts.length ? 1068 : 1624) * 1.5, h = 614 * 1.5;
+        var wh = dash ? [1920, 1080] : c.kind === 'calendar' ? bareSize(c, Math.round(w)) : [Math.round(w), Math.round(h)];
+        var cv = canvas(c, wh[0], wh[1], !dash);
+        cv.id = 'chart-' + (i + 1);
+        box.appendChild(cv);
+        body.appendChild(box);
+      }
+      if (pts.length) {
+        var side = el('div', hasChart ? 'side' : 'side wide');
+        side.appendChild(list('ul', '', pts));
+        body.appendChild(side);
+      }
+      sl.appendChild(body);
+    });
+
+    if (DOC.notes && DOC.notes.length) {
+      var nt = slide();
+      nt.appendChild(el('div', 'kicker', UI.about));
+      nt.appendChild(el('h2', '', UI.notes));
+      nt.appendChild(list('ul', 'notes-list', DOC.notes));
+    }
+
+    all.forEach(function (s, i) {
+      if (i > 0) s.appendChild(el('div', 'pageno', (i + 1) + ' / ' + all.length));
+      if (DOC.sign && i > 0) s.appendChild(el('div', 'sign', DOC.sign));
+    });
+    var prog = el('div', 'progress'), hint = el('div', 'hint', UI.hint);
+    document.body.appendChild(prog); document.body.appendChild(hint);
+    setTimeout(function () { hint.style.display = 'none'; }, 4000);
+
+    var cur = 0;
+    function go(n) {
+      cur = Math.max(0, Math.min(all.length - 1, n));
+      all.forEach(function (s, i) { s.className = 'slide' + (i === cur ? ' active' : ''); });
+      prog.style.width = ((cur + 1) / all.length * 100) + '%';
+      if (history.replaceState) history.replaceState(null, '', '#' + (cur + 1));
+    }
+    function fit() {
+      stage.style.transform = 'scale(' + Math.min(window.innerWidth / 1920, window.innerHeight / 1080) + ')';
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(cur + 1); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(cur - 1); e.preventDefault(); }
+      else if (e.key === 'Home') go(0);
+      else if (e.key === 'End') go(all.length - 1);
+      else if (e.key === 'f' || e.key === 'F') {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+      }
+    });
+    wrapEl.addEventListener('click', function (e) { go(e.clientX > window.innerWidth / 2 ? cur + 1 : cur - 1); });
+    window.addEventListener('resize', fit);
+    fit();
+    go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+  }
+
+  setVars();
+  if (MODE === 'report') report();
+  else if (MODE === 'slides') slides();
+  else gallery();
 })();
 </script>
 </body>
