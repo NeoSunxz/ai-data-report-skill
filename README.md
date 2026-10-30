@@ -14,7 +14,7 @@ An **agent skill** for Claude Code and other AI assistants that turns a spreadsh
   - **Reports**: one long page with key findings, a chart and explanation per section and notes on the data; prints neatly to A4 PDF.
   - **Slides**: a 16:9 HTML deck with arrow-key navigation and full screen; prints one slide per PDF page.
 - **Works with other slide skills and templates**: using [frontend-slides](https://github.com/zarazhangrui/frontend-slides), another presentation skill or your company template? This skill writes the storyline and draws the charts in that deck's colors and font, and leaves the design alone. HTML decks get an embed snippet; PowerPoint, Keynote and Google Slides get transparent PNGs.
-- **11 chart types**: bar, column, line, donut, stacked column, waterfall, KPI cards, dumbbell, waffle, bullet, calendar heatmap.
+- **11 chart types**: bar, column, line, donut, stacked column, waterfall, KPI cards, dumbbell, waffle, bullet, calendar heatmap. Bars and columns also come **grouped, stacked and 100% stacked**, for comparing several numbers or the mix across items.
 - **3 built-in themes or your own colors**: Oat Latte, Mist Blue, Midnight Navy (dark), or any palette you pass in.
 - **Built for people new to data**: the AI first asks who it's for, which numbers matter and what to compare with; cleans messy spreadsheets (several sheets, merged cells, dates stored as text, "$3,200" as text) and tells you what it changed.
 - **No made-up numbers**: every value comes from your data, and the AI explains how it summarized.

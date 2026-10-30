@@ -1040,8 +1040,185 @@ var DOC = {
     return { names: names, rows: rows };
   }
 
-  // ⑤ 条形图：横向，从大到小排，数值写在条的末端。d.highlight 写了某一行的名字，就只突出那一行
+  /* ===== 多组数的条形 / 柱形：分组、堆积、100% 堆积 ===== */
+
+  // 几个数按比例分成整数百分比，加起来正好 100（最大余数法）
+  function pctInts(vs) {
+    var t = vs.reduce(function (s, v) { return s + v; }, 0);
+    if (!(t > 0)) return vs.map(function () { return 0; });
+    var raw = vs.map(function (v) { return v / t * 100; }), out = raw.map(Math.floor);
+    var left = 100 - out.reduce(function (s, v) { return s + v; }, 0);
+    raw.map(function (r, i) { return { i: i, f: r - out[i] }; }).sort(function (p, q) { return q.f - p.f; })
+      .slice(0, left).forEach(function (o) { out[o.i] += 1; });
+    return out;
+  }
+  // 色块上写字：浅色块用深字，深色块用白字
+  function onColor(c) { return hex6(c) && luma(hex6(c)) > 0.62 ? C.ink : '#FFFFFF'; }
+
+  function multiRows(d) {
+    var mode = d.stack === 'percent' ? 'pct' : d.stack ? 'stack' : 'group';
+    var sr = seriesRows(d, mode === 'group' ? 4 : 5, mode === 'group' ? 12 : 16);
+    sr.rows.forEach(function (r) {
+      r.v = r.v.map(function (v) { return isFinite(v) && v > 0 ? v : 0; });
+      r.t = r.v.reduce(function (s, v) { return s + v; }, 0);
+      r.p = pctInts(r.v);
+    });
+    sr.rows = sr.rows.filter(function (r) { return r.t > 0; });
+    sr.mode = mode;
+    return sr;
+  }
+
+  // 条形图（横向）多组数。默认按合计从大到小排；分组按最后一组（通常是最新的）排；100% 堆积按第一组的占比排。d.sort = false 保持原顺序
+  function barMulti(ctx, d, opt) {
+    var a = frame(ctx, opt), sr = multiRows(d), names = sr.names, rows = sr.rows, mode = sr.mode, unit = d.unit || '';
+    if (!rows.length) return empty(ctx, a, opt);
+    if (d.sort !== false) rows.sort(mode === 'pct' ? function (p, q) { return q.v[0] / q.t - p.v[0] / p.t; }
+      : mode === 'group' ? function (p, q) { return q.v[q.v.length - 1] - p.v[p.v.length - 1]; } : function (p, q) { return q.t - p.t; });
+    legend(ctx, names.map(function (n, k) { return { label: n, color: C.cats[k] }; }), a.x, a.y + u(14));
+
+    var top = a.y + u(80), labelW = u(190);
+    ctx.font = font(mode === 'group' ? 24 : 28, 700);
+    var valW = mode === 'pct' ? u(8) : Math.max.apply(null, rows.map(function (r) {
+      return mode === 'group' ? Math.max.apply(null, r.v.map(function (v) { return ctx.measureText(fmt(v) + unit).width; }))
+        : ctx.measureText(fmt(r.t) + unit).width;
+    })) + u(20);
+    var x0 = a.x + labelW, x1 = a.x + a.w - valW;
+    var max = mode === 'pct' ? 1 : Math.max.apply(null, rows.map(function (r) { return mode === 'group' ? Math.max.apply(null, r.v) : r.t; }));
+    var X = function (v) { return x0 + v / max * (x1 - x0); };
+    var n = names.length, rowH = Math.min(mode === 'group' ? u(44) * n + u(44) : u(100), (a.y + a.h - top) / rows.length);
+    top += (a.y + a.h - top - rowH * rows.length) / 2;
+
+    rows.forEach(function (r, i) {
+      var cy = top + rowH * (i + 0.5);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink;
+      ctx.font = font(30, 500);
+      ctx.fillText(fit(ctx, r.name, labelW - u(20)), a.x, cy);
+      if (mode === 'group') {
+        var bh = Math.min(u(40), rowH * 0.78 / n);
+        r.v.forEach(function (v, k) {
+          var y = cy - bh * n / 2 + bh * k;
+          ctx.fillStyle = C.cats[k];
+          dataBar(ctx, x0, y + u(1.5), Math.max(u(2), X(v) - x0), bh - u(3), u(6), 'r');
+          ctx.fill();
+          ctx.fillStyle = C.ink;
+          ctx.font = font(Math.min(24, bh / s * 0.8), 700);
+          ctx.fillText(fmt(v) + unit, X(v) + u(10), y + bh / 2);
+        });
+        return;
+      }
+      var barH = Math.min(u(52), rowH * 0.6), cum = 0, lastK = -1;
+      r.v.forEach(function (v, k) { if (v > 0) lastK = k; });
+      r.v.forEach(function (v, k) {
+        if (!(v > 0)) return;
+        var val = mode === 'pct' ? v / r.t : v, xs = X(cum) + (cum > 0 ? u(3) : 0), xe = X(cum + val);
+        ctx.fillStyle = C.cats[k];
+        if (k === lastK && mode === 'stack') dataBar(ctx, xs, cy - barH / 2, xe - xs, barH, u(8), 'r');
+        else { ctx.beginPath(); ctx.rect(xs, cy - barH / 2, Math.max(0, xe - xs), barH); }
+        ctx.fill();
+        // 段里写数：100% 堆积写百分比，堆积写数值；放不下就不写
+        var txt = mode === 'pct' ? r.p[k] + '%' : fmt(v);
+        ctx.font = font(24, 700);
+        if (ctx.measureText(txt).width + u(14) < xe - xs) {
+          ctx.fillStyle = onColor(C.cats[k]);
+          ctx.textAlign = 'center';
+          ctx.fillText(txt, (xs + xe) / 2, cy);
+        }
+        cum += val;
+      });
+      if (mode === 'stack') {
+        ctx.fillStyle = C.ink;
+        ctx.font = font(28, 700);
+        ctx.textAlign = 'left';
+        ctx.fillText(fmt(r.t) + unit, X(r.t) + u(12), cy);
+      }
+    });
+  }
+
+  // 柱形图（竖向）多组数：按填的顺序画（适合时间）
+  function columnMulti(ctx, d, opt) {
+    var a = frame(ctx, opt), sr = multiRows(d), names = sr.names, rows = sr.rows, mode = sr.mode, unit = d.unit || '';
+    if (!rows.length) return empty(ctx, a, opt);
+    legend(ctx, names.map(function (n, k) { return { label: n, color: C.cats[k] }; }), a.x, a.y + u(14));
+    var max = mode === 'pct' ? 1 : Math.max.apply(null, rows.map(function (r) { return mode === 'group' ? Math.max.apply(null, r.v) : r.t; }));
+    var tk = mode === 'pct' ? [0, 0.25, 0.5, 0.75, 1] : ticks(0, max, 5);
+    var x0 = a.x + (mode === 'pct' ? (function () { ctx.font = font(24, 400); return ctx.measureText('100%').width + u(14); })() : yAxisWidth(ctx, tk));
+    var x1 = a.x + a.w, top = a.y + u(110), bottom = a.y + a.h - u(80);
+    var Y;
+    if (mode === 'pct') {
+      Y = function (v) { return bottom - v * (bottom - top); };
+      ctx.font = font(24, 400);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      tk.forEach(function (t) {
+        ctx.strokeStyle = t === 0 ? C.ink2 : C.rule;
+        ctx.lineWidth = u(t === 0 ? 2 : 1.5);
+        ctx.beginPath(); ctx.moveTo(x0, Y(t)); ctx.lineTo(x1, Y(t)); ctx.stroke();
+        ctx.fillStyle = C.ink2;
+        ctx.fillText(Math.round(t * 100) + '%', x0 - u(14), Y(t));
+      });
+    } else Y = yAxis(ctx, x0, x1, top, bottom, tk);
+    var slot = (x1 - x0) / rows.length, X = function (i) { return x0 + slot * (i + 0.5); };
+    var fs = Math.max(18, Math.min(26, slot / s * 0.3)), n = names.length;
+
+    rows.forEach(function (r, i) {
+      if (mode === 'group') {
+        var gw = Math.min(u(44) * n, slot * 0.8), bw = gw / n;
+        r.v.forEach(function (v, k) {
+          var x = X(i) - gw / 2 + bw * k;
+          ctx.fillStyle = C.cats[k];
+          dataBar(ctx, x + u(1.5), Y(0), bw - u(3), Y(v) - Y(0) || -u(2), u(6), 't');
+          ctx.fill();
+        });
+        // 每组只在最高那根上写数，避免挤
+        ctx.font = font(fs, 700);
+        var hi = Math.max.apply(null, r.v), kh = r.v.indexOf(hi);
+        if (ctx.measureText(fmt(hi) + unit).width < slot * 0.96) {
+          ctx.fillStyle = C.ink;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(fmt(hi) + unit, X(i) - gw / 2 + bw * (kh + 0.5), Y(hi) - u(8));
+        }
+        return;
+      }
+      var bw2 = Math.min(u(110), slot * 0.62), cum = 0, lastK = -1;
+      r.v.forEach(function (v, k) { if (v > 0) lastK = k; });
+      r.v.forEach(function (v, k) {
+        if (!(v > 0)) return;
+        var val = mode === 'pct' ? v / r.t : v, yb = Y(cum) - (cum > 0 ? u(3) : 0), yt = Y(cum + val);
+        ctx.fillStyle = C.cats[k];
+        if (k === lastK && mode === 'stack') dataBar(ctx, X(i) - bw2 / 2, yb, bw2, yt - yb, u(8), 't');
+        else { ctx.beginPath(); ctx.rect(X(i) - bw2 / 2, yt, bw2, Math.max(0, yb - yt)); }
+        ctx.fill();
+        if (mode === 'pct') {
+          var txt = r.p[k] + '%';
+          ctx.font = font(Math.min(24, fs), 700);
+          if (yb - yt > u(30) && ctx.measureText(txt).width + u(10) < bw2) {
+            ctx.fillStyle = onColor(C.cats[k]);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(txt, X(i), (yt + yb) / 2);
+          }
+        }
+        cum += val;
+      });
+      if (mode === 'stack') {
+        ctx.font = font(fs, 700);
+        ctx.fillStyle = C.ink;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        if (ctx.measureText(fmt(r.t) + unit).width < slot * 0.96 || i === rows.length - 1)
+          ctx.fillText(fmt(r.t) + unit, X(i), Y(r.t) - u(10));
+      }
+    });
+    xLabels(ctx, rows.map(function (r) { return r.name; }), X, bottom + u(16), slot);
+  }
+
+  // ⑤ 条形图：横向，从大到小排，数值写在条的末端。d.highlight 写了某一行的名字，就只突出那一行。
+  //    有两组以上的数（d.series）或写了 d.stack，改画分组 / 堆积 / 100% 堆积
   function bar(ctx, d, opt) {
+    if ((d.series && d.series.length > 1) || d.stack) return barMulti(ctx, d, opt);
     var a = frame(ctx, opt);
     var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
       .filter(function (r) { return r.name && isFinite(r.v); })
@@ -1083,6 +1260,7 @@ var DOC = {
 
   // ⑥ 柱形图：按填的顺序排（适合月份、年份），柱顶写数值；柱子太密时只写最高、最低和最后一根
   function column(ctx, d, opt) {
+    if ((d.series && d.series.length > 1) || d.stack) return columnMulti(ctx, d, opt);
     var a = frame(ctx, opt);
     var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
       .filter(function (r) { return r.name !== undefined && r.name !== '' && isFinite(r.v); }).slice(0, 24);
@@ -1249,44 +1427,12 @@ var DOC = {
     shareLegend(ctx, rows, d, a, wide, gx, gy, size);
   }
 
-  // ⑨ 堆积柱形图：最多 5 个系列，从下往上按系列顺序堆，柱顶写合计
+  // ⑨ 堆积柱形图：就是柱形图加 stack: true（没写 stack 时按堆积画），保留这个名字，旧写法照样能用
   function stacked(ctx, d, opt) {
-    var a = frame(ctx, opt);
-    var sr = seriesRows(d, 5, 16), names = sr.names, rows = sr.rows;
-    rows.forEach(function (r) {
-      r.v = r.v.map(function (v) { return isFinite(v) && v > 0 ? v : 0; });
-      r.t = r.v.reduce(function (t, v) { return t + v; }, 0);
-    });
-    if (!rows.length || !rows.some(function (r) { return r.t > 0; })) return empty(ctx, a, opt);
-
-    legend(ctx, names.map(function (n, k) { return { label: n, color: C.cats[k] }; }), a.x, a.y + u(14));
-    var tk = ticks(0, Math.max.apply(null, rows.map(function (r) { return r.t; })), 5);
-    var x0 = a.x + yAxisWidth(ctx, tk), x1 = a.x + a.w, top = a.y + u(110), bottom = a.y + a.h - u(80);
-    var Y = yAxis(ctx, x0, x1, top, bottom, tk);
-    var slot = (x1 - x0) / rows.length, bw = Math.min(u(110), slot * 0.62), unit = d.unit || '';
-    var X = function (i) { return x0 + slot * (i + 0.5); };
-    var fs = Math.max(18, Math.min(26, slot / s * 0.34));
-
-    rows.forEach(function (r, i) {
-      var cum = 0, lastK = -1;
-      r.v.forEach(function (v, k) { if (v > 0) lastK = k; });
-      r.v.forEach(function (v, k) {
-        if (!(v > 0)) return;
-        var yb = Y(cum) - (cum > 0 ? u(3) : 0), yt = Y(cum + v);
-        ctx.fillStyle = C.cats[k];
-        if (k === lastK) dataBar(ctx, X(i) - bw / 2, yb, bw, yt - yb, u(8), 't');
-        else { ctx.beginPath(); ctx.rect(X(i) - bw / 2, yt, bw, yb - yt); }
-        ctx.fill();
-        cum += v;
-      });
-      ctx.font = font(fs, 700);
-      ctx.fillStyle = C.ink;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      if (ctx.measureText(fmt(r.t) + unit).width < slot * 0.96 || i === rows.length - 1)
-        ctx.fillText(fmt(r.t) + unit, X(i), Y(r.t) - u(10));
-    });
-    xLabels(ctx, rows.map(function (r) { return r.name; }), X, bottom + u(16), slot);
+    var dd = {};
+    for (var k in d) dd[k] = d[k];
+    if (!dd.stack) dd.stack = true;
+    return columnMulti(ctx, dd, opt);
   }
 
   // ⑩ 瀑布图：第一行是起点（比如去年利润），中间每行是增减，最后一根柱子自动算出终点
