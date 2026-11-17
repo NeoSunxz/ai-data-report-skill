@@ -2,6 +2,8 @@
 
 一个给 Claude Code 等 AI 助手用的 **Skill**。告诉它你想知道什么（「哪家店有问题」「今年做得怎么样」），它判断该用哪几种图来回答，做成能直接用的**图表、一页数据看板、可打印的报告或 HTML 幻灯片**。数据可以来自 Excel、CSV、粘贴的表格、数据库或 BI 的查询结果，也可以是你在对话里给的数。不联网：AI 生成一个 HTML 文件，用浏览器打开就行。
 
+**在线示例**（浏览器直接打开，虚构的咖啡店数据）：[图片和看板](https://neosunxz.github.io/ai-data-report-skill/examples/demo.html) · [报告](https://neosunxz.github.io/ai-data-report-skill/examples/report.html) · [幻灯片](https://neosunxz.github.io/ai-data-report-skill/examples/slides.html)
+
 [English](README.md) · 作者 **NeoSun**
 
 ![看板示例](examples/dashboard-16x9.png)
@@ -61,7 +63,7 @@ cp -r ai-data-report-skill/skills/data-report ~/.claude/skills/
    - 报告：点顶部的「打印 / 存成 PDF」。
    - 幻灯片：← → 翻页，F 全屏，打印可以存成 PDF。
 
-想先看效果，用浏览器打开示例：[`demo.html`](examples/demo.html)（图片和看板）、[`report.html`](examples/report.html)、[`slides.html`](examples/slides.html)，里面是虚构的咖啡店数据。
+想先看效果，直接打开在线示例：[图片和看板](https://neosunxz.github.io/ai-data-report-skill/examples/demo.html)、[报告](https://neosunxz.github.io/ai-data-report-skill/examples/report.html)、[幻灯片](https://neosunxz.github.io/ai-data-report-skill/examples/slides.html)，里面是虚构的咖啡店数据。同样的文件在 [`examples/`](examples/) 里，也可以下载到本地打开。
 
 ## 限制
 

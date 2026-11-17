@@ -2,6 +2,8 @@
 
 An **agent skill** for Claude Code and other AI assistants. Tell it what you want to know ("which store has a problem?", "how did we do this year?"); it works out which charts answer that question and builds **report-ready charts, a one-page dashboard, a printable report or an HTML slide deck**. The data can come from Excel, CSV, a pasted table, a database or BI query, or numbers you type. No internet needed: the AI writes one HTML file, you open it in a browser.
 
+**Live examples** (open in your browser, made-up coffee shop data): [charts & dashboard](https://neosunxz.github.io/ai-data-report-skill/examples/demo.html) · [report](https://neosunxz.github.io/ai-data-report-skill/examples/report.html) · [slides](https://neosunxz.github.io/ai-data-report-skill/examples/slides.html)
+
 [中文说明](README.zh-CN.md) · by **NeoSun**
 
 ![Dashboard example](examples/dashboard-16x9.png)
@@ -61,7 +63,7 @@ cp -r ai-data-report-skill/skills/data-report ~/.claude/skills/
    - Reports: "Print / save as PDF" at the top.
    - Slides: ← → to move, F for full screen, print to save as PDF.
 
-To see it first, open the examples in a browser: [`demo.html`](examples/demo.html) (charts and dashboard), [`report.html`](examples/report.html), [`slides.html`](examples/slides.html). They use made-up coffee shop data.
+To see it first, open the live examples: [charts & dashboard](https://neosunxz.github.io/ai-data-report-skill/examples/demo.html), [report](https://neosunxz.github.io/ai-data-report-skill/examples/report.html), [slides](https://neosunxz.github.io/ai-data-report-skill/examples/slides.html). They use made-up coffee shop data; the same files are in [`examples/`](examples/) if you'd rather open them locally.
 
 ## Limits
 
