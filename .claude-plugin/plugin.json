@@ -1,0 +1,10 @@
+{
+  "name": "data-report",
+  "version": "1.0.0",
+  "description": "Say what you want to know; the AI picks the charts that answer it (17 types) and builds a report you can use right away: charts, a one-page dashboard, a printable report or HTML slides. Offline, one HTML file.",
+  "author": { "name": "NeoSun", "url": "https://github.com/NeoSunxz" },
+  "homepage": "https://github.com/NeoSunxz/ai-data-report-skill",
+  "repository": "https://github.com/NeoSunxz/ai-data-report-skill",
+  "license": "MIT",
+  "keywords": ["data", "report", "charts", "dashboard", "slides", "excel", "csv", "data-visualization"]
+}

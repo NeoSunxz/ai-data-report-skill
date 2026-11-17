@@ -1,0 +1,12 @@
+{
+  "name": "neosun-skills",
+  "description": "Skills by NeoSun",
+  "owner": { "name": "NeoSun", "url": "https://github.com/NeoSunxz" },
+  "plugins": [
+    {
+      "name": "data-report",
+      "source": "./",
+      "description": "Say what you want to know; the AI picks the charts that answer it and builds charts, a dashboard, a printable report or HTML slides."
+    }
+  ]
+}

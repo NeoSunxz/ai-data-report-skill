@@ -1,293 +1,9 @@
----
-name: excel-charts
-license: MIT
-description: Turn data from Excel, CSV or a pasted table into report-ready charts, one-page dashboards, printable reports and HTML slide decks. 11 chart types (bar, column, line, donut, stacked column, waterfall, KPI cards, dumbbell, waffle, bullet, calendar heatmap) in 3 color themes or the colors of the user's own template. Use when the user has data and says "make a chart", "chart this", "build a dashboard", "write a report on this data", "turn this spreadsheet into slides" or "analyze this spreadsheet". Works alongside other presentation skills and templates: it supplies the storyline and the charts and leaves the deck's design to them. Works for people new to data: it asks what they want to see first, then cleans the data.
----
-
-# excel-charts: charts, dashboards, reports and slides from a spreadsheet
-
-How it works: find out what the user wants → read and clean the data → pick charts → choose the output (charts, dashboard, report or slides) → fill in one `DOC` object → drop it into the web page template at the end of this file → the user opens one HTML file in a browser.
-
-The user may know nothing about data. Use plain words throughout. Don't say "dimension", "measure", "aggregate" or "field"; say "by store", "added up", "this column".
-
-All drawing code is in the template. Nothing is downloaded or installed. **In the template, change only the `var DOC = {};` line.** Don't touch anything else.
-
-## 0. Find out what they want
-
-If the request is specific ("make a bar chart of sales by store", "turn this into 6 slides"), skip the questions and do it.
-
-If the user only says "build me a dashboard", "make a report" or "analyze this spreadsheet", look at the data first, then ask these questions **in one message**. For each, offer options guessed from the data so the user can just pick or adjust:
-
-1. **Who is it for, and how will they see it?** For example: a slide deck for a meeting / a report to send around / a dashboard image for a chat / charts to paste into my own slides. This picks the output (section 3).
-2. **Which numbers matter most?** Pick 2–4 from the data, for example "sales, cups sold, average ticket".
-3. **Compared with what?** For example: last year / the target / last month / nothing. If the data has nothing to compare with, say so. Don't make it up.
-4. **Only if they want slides:** are they already using a slide template or another presentation skill (such as frontend-slides)? If yes, follow section 6.
-
-If the user says "up to you" or "I don't know", use the default **business review**: KPI cards (key numbers vs. the comparison period) + a trend (by month) + a ranking (by store, product or person) + a breakdown (shares). Tell the user which question each part answers and that any part they don't need can be removed.
-
-## 1. Read and clean the data. Never invent numbers
-
-1. Read the file (Excel / CSV / a pasted table). Note the columns, the units, and any total rows or blank rows.
-2. Every number in a chart must come from the user's data or be calculated from it. **Don't fill gaps, don't estimate, don't round to nicer numbers.**
-3. When you need to summarize (sum by month, sum by store, work out shares), first tell the user in one sentence how, for example "I added up each store's daily sales for 2025".
-4. Don't draw total or subtotal rows as a category.
-
-Spreadsheets made by people new to data often have the problems below. Fix them yourself, **without changing the original file**, then tell the user what you did in one plain sentence:
-
-| Problem | What to do | What to tell the user (example) |
-|---|---|---|
-| Several sheets in one file | List what each sheet is and ask which to use; if it's clearly one table split by month, combine them | "January to December were on 12 sheets; I combined them into one" |
-| Merged cells | Fill the merged value into every row | "Store names were in merged cells; I filled the name into every row" |
-| Several header rows, with a title or notes on top | Find the real header row and skip what's above it | "I started reading at row 3; the first two rows are a title" |
-| Dates stored as text or in mixed formats | Convert to YYYY-MM-DD; list any you can't read and ask. Watch for day/month order (3/5/2025 can be March 5 or May 3): check the other rows, and ask if still unclear | "3 dates were written as 'March 5th'; I used 2025-03-05" |
-| Units or symbols inside numbers ("12k", "$3,200", "15%") | Convert to plain numbers and put the unit in the subtitle | "I removed the '$' from sales; the unit is shown on the chart" |
-| The same thing spelled differently ("Main St", "Main Street") | Merge if you're sure they're the same, otherwise ask | "I treated 'Main St' and 'Main Street' as the same store" |
-| Blank rows, stray spaces, duplicate rows | Skip blank rows; for identical rows, ask whether they're a double entry | "2 rows are exactly the same. Count them once?" |
-| Missing data (a month with no numbers) | Don't fill it. Line charts break there, column charts skip that column; say so | "There's no data for July, so that spot is empty" |
-
-## 2. Pick the charts
-
-First decide what question the chart answers, then pick the chart. If the user names a chart, use it.
-
-| Question | Chart | kind |
-|---|---|---|
-| Who is bigger, what's the ranking | Bar chart | `bar` |
-| How much each month / year (in time order, one series) | Column chart | `column` |
-| Where the trend is going, a few lines compared (in time order) | Line chart | `line` |
-| How big each part is (up to 6 parts) | Donut / waffle chart | `donut` / `waffle` |
-| The total at each point in time, and what it's made of | Stacked column chart | `column` + `stack: true` (or `stacked`) |
-| Two or more numbers per item side by side (this year vs last, actual vs plan) | Grouped bar / column | `bar` / `column` + `series` |
-| Which items are bigger, and what each is made of | Stacked bar | `bar` + `series` + `stack: true` |
-| How the mix differs between items (channel share by store, share by quarter) | 100% stacked bar / column | `bar` / `column` + `series` + `stack: "percent"` |
-| How A became B: what added and what took away | Waterfall chart | `waterfall` |
-| A few key numbers and how they compare | KPI cards | `kpi` |
-| How much each item changed between two points in time | Dumbbell chart | `dumbbell` |
-| Did each item hit its target | Bullet chart | `bullet` |
-| Highs and lows for every day of a year, busy and quiet seasons | Calendar heatmap | `calendar` |
-| Several questions on one page | Dashboard | `dashboard` |
-
-A few rules:
-- One chart answers one question. If the data answers several questions, make several charts.
-- Categories with no natural order (stores, products) go in a bar chart, not a column chart.
-- Shares of **one** whole: donut or waffle. Shares compared **across several items**: 100% stacked bar (stores) or column (time).
-- The parts of a share chart must add up to one whole. Things that aren't parts of a whole (such as overlapping metrics) can't go in a donut or waffle chart.
-- Two sets of numbers in different units (such as sales and cups sold) go in two charts. Don't force them into one.
-- With only 1–2 numbers, use KPI cards instead of a chart.
-
-## 3. Choose the output
-
-| The user wants | `DOC.mode` | What they get |
-|---|---|---|
-| Chart images to post or paste | `charts` | Each chart as a 3:4 PNG (phones), a 16:9 PNG (slides), and "chart only", a transparent PNG that fits any template, including PowerPoint, Keynote and Google Slides |
-| A dashboard image | `charts` with one `dashboard` chart | One page with KPI cards and 2–6 charts, as 16:9 or a long phone image |
-| A report to read or send | `report` | One long web page: title, key findings, one section per chart with its explanation, and notes on the data. Prints neatly to A4 PDF |
-| A slide deck, no template of their own | `slides` | An HTML deck (16:9, arrow keys to move, F for full screen, prints one slide per PDF page) in the 3 built-in themes |
-| A slide deck in their own template or another slide skill | see section 6 | The storyline and charts in that deck's colors; the deck's look stays theirs |
-
-### Write the story first (report and slides)
-
-Before filling in `DOC`, write the storyline as a list: one line per section, each a **finding**, not a label ("December was the best month", not "Monthly sales"). Order: the overall picture first, then the biggest finding, then the details, then what to watch. 4–8 sections is plenty. Each section has one chart and 0–4 short points. Points say what the chart shows, with numbers from the data; no guessed reasons.
-
-## 4. Fill in `DOC`
-
-`DOC` is one object. Fields for every mode:
-
-| Field | Required | Notes |
-|---|---|---|
-| `mode` | yes | `charts`, `report` or `slides` |
-| `title` | yes | Page, report or deck title |
-| `subtitle` | no | One line under the title |
-| `author`, `date` | no | Shown under the title (report) or on the cover (slides) |
-| `theme` | no | `latte` Oat Latte (default), `mist` Mist Blue, `navy` Midnight Navy (dark), or an object with custom colors (section 6). Charts and reports also get buttons to switch |
-| `lang` | no | Language of the text built into the charts and page (legends, "Total", month names, buttons): `"en"` by default; use `"zh"` when the user writes in Chinese. Write titles, subtitles and names in the user's language too |
-| `sign` | no | A credit line, for example `"Store Ops Team"`. Not shown if left out |
-
-**`charts` mode**: `DOC.charts` is an array of charts.
-```json
-{"mode": "charts", "title": "Sales charts", "charts": [{"kind": "bar", "title": "...", "rows": [...]}, {"kind": "dashboard", "title": "...", "panels": [...]}]}
-```
-
-**`report` and `slides` modes**: `DOC.summary` is 2–4 key findings (one sentence each); `DOC.sections` is the storyline, one chart per section; `DOC.notes` says where the data came from and how it was summarized. Each section is a chart object (formats below) plus:
-- `title`: the finding, shown as the section heading or the slide headline. On slides keep it to one line (about 45 characters).
-- `subtitle`: the unit and time range, for example "Monthly sales, $ thousands".
-- `points`: 0–4 short sentences shown next to the chart (slides) or under it (report). On slides, 2–3 points of under 60 characters each read best.
-- `text`: (report only) a short paragraph instead of, or before, the points.
-- `kind: "text"`: a section with points and no chart.
-- In `slides` mode, `DOC.kicker` is a small label above the title on the cover, for example "Annual review"; `section.kicker` does the same on a slide.
-
-```json
-{"mode": "slides", "title": "2025 coffee shop review", "subtitle": "Sales, stores and channels across 6 stores", "author": "NeoSun", "date": "2026-01-15",
- "summary": ["Sales grew 5.2% to $215.3k, driven by more cups sold", "Delivery more than doubled and is catching up with dine-in"],
- "sections": [
-  {"kind": "column", "title": "December was the best month", "subtitle": "Monthly sales, $ thousands", "rows": [{"name": "Jan", "a": 15.2}, {"name": "Feb", "a": 12.1}],
-   "points": ["$24.0k in December, the highest of the year", "February was the low point at $12.1k"]},
-  {"kind": "bar", "title": "Tech Park and Riverside lead", "subtitle": "2025 sales by store, $ thousands", "rows": [{"name": "Tech Park", "a": 46.9}, {"name": "Riverside", "a": 45.7}]}
- ],
- "notes": ["Made-up data for 6 stores", "Sales are summed by month and by store from daily sales"]}
-```
-
-### Chart formats
-
-Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `rows`. Optional: `unit` (a short unit after each value, such as `"k"` or `"%"`; longer units go in the subtitle) and `file` (download file name in `charts` mode). Keep category names short (about 12 characters or fewer): on a crowded axis, long names get small text or only every other one is shown. Values can be numbers or numeric strings (`33.6`, `"33.6"`, `"1,280"`). In `charts` mode the title is drawn on the image: about 35 characters fit, longer titles are set smaller, then cut off.
-
-**Bar chart `bar`**: `rows: [{name, a}]`. Sorted from largest to smallest automatically, up to 15 rows. `highlight: "Riverside"` highlights only that row and greys out the rest.
-
-**More than one number per row** (bar and column alike): add `series` with the names and write each row as `{name, v: [one value per series]}`. Then `stack` picks the look:
-- not set: **grouped**, bars side by side (up to 4 series, 12 rows). Bars are sorted by the last series, usually the latest.
-- `true`: **stacked**, parts end to end with the total at the end (up to 5 series, 16 rows). Sorted by total.
-- `"percent"`: **100% stacked**, every row adds up to 100%, with the % written in each part (up to 5 series, 16 rows). Bars are sorted by the first series' share; put the part you want to compare first.
-- `sort: false` keeps your order (bars only; columns always keep it). Only positive values are drawn in these modes.
-```json
-{"kind": "bar", "stack": "percent", "title": "Campus relies most on delivery", "subtitle": "Share of sales by channel, 2025", "series": ["Delivery", "Dine-in", "Pickup"],
- "rows": [{"name": "Main St", "v": [9.2, 20.1, 4.3]}, {"name": "Campus", "v": [13.2, 9.1, 3.2]}]}
-```
-```json
-{"kind": "bar", "title": "Which of our 6 stores sells the most", "subtitle": "2025 sales, $ thousands",
- "rows": [{"name": "Main St", "a": 33.6}, {"name": "Riverside", "a": 45.7}, {"name": "Tech Park", "a": 46.9}]}
-```
-
-**Column chart `column`**: `rows: [{name, a}]`. Drawn in the order given, up to 24 columns; negative values are fine. `highlight` works the same way.
-```json
-{"kind": "column", "title": "Monthly sales in 2025", "subtitle": "$ thousands", "highlight": "Dec",
- "rows": [{"name": "Jan", "a": 15.2}, {"name": "Feb", "a": 12.1}, {"name": "Mar", "a": 16.8}]}
-```
-
-**Line chart `line`**: `series` holds the line names (up to 4); `rows: [{name, v: [one value per line]}]`. Drawn in the order given, up to 60 points. Write `null` for a missing value and the line breaks there.
-```json
-{"kind": "line", "title": "Delivery is catching up with dine-in", "subtitle": "Cups per month, thousands", "series": ["Dine-in", "Delivery"],
- "rows": [{"name": "Jan", "v": [21.4, 9.8]}, {"name": "Feb", "v": [17.9, 9.1]}, {"name": "Mar", "v": [22.6, 11.5]}]}
-```
-
-**Donut chart `donut`**: `rows: [{name, a}]`, positive values only. With more than 6 parts, the 6th largest onward are merged into "Other". The total goes in the middle; `totalLabel` replaces the word "Total".
-```json
-{"kind": "donut", "title": "Where 2025 sales came from", "subtitle": "By category", "unit": "k",
- "rows": [{"name": "Coffee", "a": 161.2}, {"name": "Tea", "a": 26.9}, {"name": "Bakery", "a": 17.4}]}
-```
-
-**Stacked column chart `stacked`**: the same as `column` with `stack: true`. `series` holds the part names (up to 5, stacked bottom to top); `rows: [{name, v: [one value per part]}]`, up to 16 columns, positive values only. The total is written on top.
-```json
-{"kind": "stacked", "title": "Quarterly sales by channel", "subtitle": "$ thousands", "series": ["Dine-in", "Delivery", "Pickup"],
- "rows": [{"name": "Q1", "v": [28.4, 9.6, 6.1]}, {"name": "Q2", "v": [31.2, 13.8, 7.8]}]}
-```
-
-**Waterfall chart `waterfall`**: the first row is the starting value (such as last year's profit); each row after it is an increase (positive) or decrease (negative), up to 14 rows. The last column is calculated automatically and named with `endLabel`. **Check the calculated end value against the end value in the user's data. If they don't match, something is missing: tell the user first.**
-```json
-{"kind": "waterfall", "title": "Why profit went up this year", "subtitle": "$ thousands", "endLabel": "2025 profit",
- "rows": [{"name": "2024 profit", "a": 28.5}, {"name": "Sales up", "a": 12.6}, {"name": "Beans", "a": -4.8}]}
-```
-
-**KPI cards `kpi`**: `rows: [{name, a: current, b: comparison (optional), unit}]`, up to 6. With `b`, the change is shown; `labelB` is the text after it, for example "vs last year".
-```json
-{"kind": "kpi", "title": "2025 at a glance", "subtitle": "Compared with 2024", "labelB": "vs last year",
- "rows": [{"name": "Sales ($)", "a": 215.3, "b": 204.6, "unit": "k"}, {"name": "Repeat rate", "a": 38.5, "b": 35.1, "unit": "%"}]}
-```
-
-**Dumbbell chart `dumbbell`**: `rows: [{name, a: start, b: end}]`; `labelA` / `labelB` name the two points in time. Sorted by end value, largest first, with the percentage change on the right. Works best with up to 8 rows.
-```json
-{"kind": "dumbbell", "title": "Sales by store: 2024 vs 2025", "subtitle": "$ thousands", "labelA": "2024", "labelB": "2025",
- "rows": [{"name": "Main St", "a": 31.8, "b": 33.6}, {"name": "Riverside", "a": 42.9, "b": 45.7}]}
-```
-
-**Waffle chart `waffle`**: same as the donut chart, `rows: [{name, a}]`; 100 squares, 1 square = 1%.
-```json
-{"kind": "waffle", "title": "Where 2025 sales came from", "subtitle": "By category, 1 square = 1%", "unit": "k",
- "rows": [{"name": "Coffee", "a": 161.2}, {"name": "Tea", "a": 26.9}]}
-```
-
-**Bullet chart `bullet`**: `rows: [{name, a: actual, b: target}]`. Sorted by how much of the target was reached; bars below target are red. Works best with up to 8 rows.
-```json
-{"kind": "bullet", "title": "2025 sales vs target by store", "subtitle": "$ thousands",
- "rows": [{"name": "Main St", "a": 33.6, "b": 32}, {"name": "Tech Park", "a": 46.9, "b": 50}]}
-```
-
-**Calendar heatmap `calendar`**: `rows: [{name: date, a: value}]`, one row per day. Write dates as `2025-01-03` (year first); Excel date serial numbers also work. Only the year with the most data is drawn; several rows for the same day are added up.
-```json
-{"kind": "calendar", "title": "Daily sales in 2025", "subtitle": "Darker means a busier day", "unit": "",
- "rows": [{"name": "2025-01-01", "a": 5120}, {"name": "2025-01-02", "a": 4380}]}
-```
-
-**Dashboard `dashboard`**: puts 2–7 charts on one page. Each item in `panels` is a chart, written exactly like the single charts above (`theme`, `file`, `sign` and `lang` go on the dashboard only, or on `DOC` when it sits in `DOC.charts`).
-- When the first panel is KPI cards, it takes the whole top row; leave out its `title` in that case.
-- The other charts: 2–3 per row in 16:9, up to two rows; one per row, stacked down, in the long phone image.
-- Panels are smaller than single charts, so keep each `title` short (about 20 characters) and put units in the `subtitle`.
-- At most 1 row of KPI cards + 6 charts per page. If you need more, split into two dashboards.
-- Two downloads: 16:9 (slides, screens) and a long phone image.
-```json
-{"kind": "dashboard", "title": "2025 coffee shop dashboard", "subtitle": "6 stores · data through 2025-12-31", "file": "dashboard",
- "panels": [
-  {"kind": "kpi", "labelB": "vs last year", "rows": [{"name": "Sales ($)", "a": 215.3, "b": 204.6, "unit": "k"}, {"name": "Repeat rate", "a": 38.5, "b": 35.1, "unit": "%"}]},
-  {"kind": "column", "title": "December sold the most", "subtitle": "Monthly sales, $k", "rows": [{"name": "Jan", "a": 15.2}, {"name": "Feb", "a": 12.1}]},
-  {"kind": "bar", "title": "Tech Park is #1", "subtitle": "Sales by store, $k", "rows": [{"name": "Main St", "a": 33.6}, {"name": "Tech Park", "a": 46.9}]},
-  {"kind": "donut", "title": "Coffee is 3/4 of sales", "subtitle": "Sales by category", "unit": "k", "rows": [{"name": "Coffee", "a": 161.2}, {"name": "Tea", "a": 26.9}]}
- ]}
-```
-
-
-## 5. Create the page
-
-1. Write the whole HTML from "Template" at the end of this file (the last code block; the snippet in section 6 is something else) into a file as is, for example `charts.html`, `report.html` or `slides.html`, in the user's working folder.
-2. Replace only `var DOC = {};` with your object, for example `var DOC = {"mode": "report", ...};`. Don't change anything else, and don't trim the drawing code.
-3. Tell the user how to use it:
-   - `charts`: open in Chrome or Edge; every chart has download buttons; the buttons at the top switch the theme.
-   - `report`: open in a browser; "Print / save as PDF" at the top makes an A4 PDF.
-   - `slides`: open in a browser; ← → or click to move, F for full screen; print to save as PDF, one slide per page.
-4. If you can run a headless browser (such as Playwright), check the result yourself before handing it over: open the page, look at every chart (and every slide), and fix text that is cut off or crowded. You can also export PNGs by calling `toDataURL('image/png')` on each `<canvas>`; ids are `chart-<n>-3x4`, `chart-<n>-16x9`, `chart-<n>-chart` (transparent) and `chart-<n>-long` in `charts` mode, and `chart-<n>` in reports and slides.
-
-## 6. Working with other slide skills and templates
-
-Other presentation skills (such as frontend-slides) and the user's own templates own the look of their decks. **Don't restyle their slides, don't add your CSS, fonts or navigation to their deck, and don't replace their layout.** Your job there is the content: the storyline (section 3) and the charts, drawn in the deck's colors.
-
-1. **Agree who builds the deck.** If another slide skill is in use, give it the storyline as a list: for each slide, the headline (the finding), the chart, and 2–3 points. Let it build the slides, then add the charts as below.
-2. **Read the deck's colors and font.** From the deck's CSS variables or the template's theme, take: the background behind the chart (`card`), the main text color (`ink`), a muted text color (`ink2`), the accent color (`acc`), up to 6 other colors for categories (`cats`) and the body font (`font`). Use hex colors like `#1A1A2E`. Only `card`, `ink` and `acc` are required; the rest are worked out from them.
-3. **HTML decks: embed the charts.** Copy the drawing code from the template, everything from `/* ===== CHARTS_JS START ===== */` to `/* ===== CHARTS_JS END ===== */`, into one `<script>` near the end of their file, unchanged. Put a canvas where each chart goes, then add the loader once:
-```html
-<canvas class="xc-chart" width="1950" height="1050" style="width:100%;height:auto"
-  data-chart='{"kind":"line","series":["Dine-in","Delivery"],"rows":[{"name":"Q1","v":[21,10]},{"name":"Q2","v":[22,14]}]}'></canvas>
-
-<script>/* drawing code from the template, CHARTS_JS START to CHARTS_JS END */</script>
-<script>
-(function () {
-  var theme = { card: "#14121F", ink: "#F4F1EA", ink2: "#9C97B0", acc: "#FF6B4A", font: "Georgia" };
-  function drawAll() {
-    Array.prototype.forEach.call(document.querySelectorAll("canvas.xc-chart"), function (cv) {
-      var c = JSON.parse(cv.getAttribute("data-chart"));
-      Charts[c.kind](cv.getContext("2d"), c, { bare: true, theme: c.theme || theme, lang: c.lang || "en", fontScale: 1.3 });
-    });
-  }
-  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(drawAll);
-})();
-</script>
-```
-   - `bare: true` draws only the chart: no title (the slide has its headline), no card, a transparent background.
-   - Size the canvas at about 1.5× the space it takes on the slide, in the same proportions, so it stays sharp. `fontScale` makes the chart's text bigger for slides (1.3) or leaves it as is for documents (1).
-   - The drawing code adds one global, `Charts`. If the deck already has a global with that name, tell the user instead of renaming things in their file.
-   - Escape `'` inside `data-chart` as `&#39;`.
-4. **PowerPoint, Keynote, Google Slides or any other tool**: make a `charts` page with `DOC.theme` set to the template's colors, and use the "chart only" transparent PNGs. They drop onto any slide background.
-5. **Reports in someone else's format**: the same two routes work: embedded canvases with `fontScale: 1` for HTML, transparent PNGs for documents.
-
-## 7. Explain what you delivered
-
-Give the user a table with one row per chart (for a dashboard, one per panel; for a report or deck, one per section): the headline, the question it answers, the columns used, and how they were summarized ("raw data" if not summarized). Also list anything cut or merged (rows over the limit, categories merged into "Other") and anything cleaned up in step 1.
-
-End with one or two sentences on what stands out, based only on what the data shows ("December had the highest sales, $24k", "Delivery cups doubled over the year"). Don't guess at reasons.
-
-## 8. Limits
-
-- Text uses the fonts on the computer (or the deck's font when given), so letter shapes differ slightly between machines.
-- Each chart has a row limit (see the chart formats); anything beyond it isn't drawn. With a lot of data, summarize or filter first.
-- Charts are static: no clicking or filtering, and pages must be regenerated when the data changes. For a dashboard that filters and refreshes on its own, use a dedicated reporting tool.
-- Values show at most one decimal place (two for KPI values under 10), with thousands separators above 1,000.
-- Built-in slides are deliberately plain: one headline, one chart, a few points. For animated or highly designed decks, use a dedicated presentation skill and section 6.
-
-## Template
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>excel-charts</title>
+<title>data-report</title>
 <style>
   :root { --bg: #EFEBE5; --card: #FBF9F6; --ink: #2D2A26; --ink2: #8C857B; --rule: #E4DDD3; --acc: #2A669F;
     --font: "PingFang SC", "Microsoft YaHei", sans-serif; }
@@ -313,7 +29,7 @@ End with one or two sentences on what stands out, based only on what the data sh
   .dl { margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--acc); color: #fff; font-size: 14px; cursor: pointer; }
 
   /* ---- report mode ---- */
-  .report { max-width: 880px; margin: 0 auto; padding: 40px 24px 64px; }
+  .report { max-width: 1200px; margin: 0 auto; padding: 40px 32px 64px; }
   .report header { border-bottom: 3px solid var(--acc); padding-bottom: 20px; margin-bottom: 28px; }
   .report h1 { font-size: 34px; line-height: 1.25; margin: 0 0 8px; }
   .report .sub { font-size: 17px; color: var(--ink2); margin: 0; }
@@ -321,11 +37,20 @@ End with one or two sentences on what stands out, based only on what the data sh
   .findings { background: var(--card); border-left: 4px solid var(--acc); border-radius: 10px; padding: 18px 22px; margin: 0 0 32px; }
   .findings h2, .notes h2 { font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink2); margin: 0 0 10px; }
   .findings ol { margin: 0; padding-left: 22px; font-size: 17px; line-height: 1.6; }
-  .sec { background: var(--card); border-radius: 14px; padding: 24px 24px 18px; margin: 0 0 24px; break-inside: avoid; page-break-inside: avoid; }
-  .sec h2 { font-size: 22px; line-height: 1.3; margin: 0 0 4px; }
+  .sec { background: var(--card); border-radius: 14px; padding: 20px 22px 16px; margin: 0 0 18px; break-inside: avoid; page-break-inside: avoid; }
+  .sec h2 { font-size: 20px; line-height: 1.3; margin: 0 0 4px; }
+  /* wide screens: chart and points side by side (side), two small charts per row (half); wide charts (KPI cards, calendar, table) take the full row (full) */
+  .secs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 0 0 18px; }
+  .secs .sec { grid-column: 1 / -1; margin: 0; }
+  .secs .sec.half { grid-column: auto; }
+  @media (min-width: 1000px) {
+    .sec.side .sec-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 28px; align-items: center; }
+    .sec.side .sec-text > :first-child { margin-top: 0; }
+  }
+  @media (max-width: 999px) { .secs .sec.half { grid-column: 1 / -1; } }
   .sec .unit { font-size: 13px; color: var(--ink2); margin: 0 0 12px; }
   .sec canvas { display: block; width: 100%; height: auto; }
-  .sec p, .sec ul { font-size: 16px; line-height: 1.65; margin: 12px 0 0; }
+  .sec p, .sec ul { font-size: 15.5px; line-height: 1.65; margin: 12px 0 0; max-width: 860px; }
   .sec ul { padding-left: 20px; }
   .notes { font-size: 14px; color: var(--ink2); line-height: 1.6; margin-top: 32px; }
   .notes ul { padding-left: 20px; margin: 0; }
@@ -335,6 +60,9 @@ End with one or two sentences on what stands out, based only on what the data sh
     body { background: #fff; }
     .no-print { display: none !important; }
     .report { max-width: none; padding: 0; }
+    .secs { display: block; }
+    .secs .sec { margin: 0 0 14px; }
+    .sec.side .sec-body { display: block; }
   }
 
   /* ---- slides mode: fixed 1920x1080 stage, scaled to the window ---- */
@@ -375,6 +103,11 @@ End with one or two sentences on what stands out, based only on what the data sh
     .slide { position: relative; visibility: visible; opacity: 1; page-break-after: always; break-after: page; }
     .progress, .hint { display: none; }
   }
+/* hover tooltip: on screen only, never in PNGs or print */
+.xc-tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--card);border-radius:8px;padding:8px 12px;
+  font:13px/1.55 var(--font);box-shadow:0 4px 16px rgba(0,0,0,.18);max-width:280px;display:none}
+.xc-tip b{display:block;font-size:14px;margin-bottom:2px}
+@media print{.xc-tip{display:none!important}}
 </style>
 </head>
 <body>
@@ -386,7 +119,7 @@ var DOC = {};
 /* ===== CHARTS_JS START ===== */
 /* 画图：哑铃图、华夫饼图、子弹图、日历热力图，加上条形、柱形、折线、环形、堆积柱形、瀑布图和数字卡。画布尺寸取自 canvas 本身：1080×1440（小红书 3:4）为基准，
    其他尺寸（如 1920×1080 的 PPT 16:9）按比例 s 缩放。只用 Canvas 2D，ES2017。
-   小工具和 excel-charts Skill 共用这一份代码，改这里两边一起变。 */
+   小工具和 data-report Skill（ai-data-report-skill）共用这一份代码，改这里两边一起变。 */
 (function () {
   'use strict';
 
@@ -430,12 +163,12 @@ var DOC = {};
     zh: { start: '起点', end: '终点', other: '其他', hit: '达标', miss: '未达标', target: '目标', less: '少', more: '多',
       low: '最低 ', high: '最高 ', wd: ['一', '二', '三', '四', '五', '六', '日'], month: function (m) { return m + '月'; },
       value: '数值', total: '合计', up: '增加', down: '减少', startTotal: '起点 / 合计', flat: '— 持平', prev: '较上期',
-      empty: '填几行数据，图就出来了' },
+      empty: '填几行数据，图就出来了', noimg: '无图片', avg: '平均', noData: '灰色：没有数据', lowest: '最低 ', highest: '最高 ' },
     en: { start: 'Start', end: 'End', other: 'Other', hit: 'On target', miss: 'Below target', target: 'Target', less: 'Less', more: 'More',
       low: 'Low ', high: 'High ', wd: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
       month: function (m) { return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]; },
       value: 'Value', total: 'Total', up: 'Increase', down: 'Decrease', startTotal: 'Start / total', flat: '— Flat', prev: 'vs previous',
-      empty: 'Add a few rows to see the chart' }
+      empty: 'Add a few rows to see the chart', noimg: 'No image', avg: 'Average', noData: 'Gray: no data', lowest: 'Lowest ', highest: 'Highest ' }
   };
   var T = TEXT.zh;
 
@@ -508,12 +241,32 @@ var DOC = {};
   function num(v) { var n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : NaN; }
 
   // 最多一位小数，去掉多余的 0；大数加千分位
+  // 同一组数统一小数位：DEC 为 1 时小于 1000 的数都写一位小数（6 写成 6.0，和 6.5 对齐）；为 0 时都写整数（组里有上千的数）。
+  // 每张图画数值标签前按那一组数设好；坐标轴刻度不受影响（yAxis 里会临时关掉）
+  var DEC = null;
+  function decOf(vs, div) {
+    div = div || 1;
+    var xs = vs.map(function (v) { return Math.abs(v / div); }).filter(isFinite);
+    if (xs.some(function (x) { return x >= 1000; })) return 0;   // 有上千的数：整组都写整数（1,920 和 886，不写 885.5）
+    return xs.some(function (x) { return Math.round(x * 10) % 10 !== 0; }) ? 1 : null;
+  }
+  function shortDiv(big) {
+    if (T === TEXT.en) return big >= 1e9 ? 1e9 : big >= 1e6 ? 1e6 : big >= 1e4 ? 1e3 : 1;
+    return big >= 1e8 ? 1e8 : big >= 1e5 ? 1e4 : 1;
+  }
   function fmt(v) {
-    var a = Math.abs(v), s = a >= 1000 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+    var a = Math.abs(v), s = a >= 1000 || DEC === 0 ? String(Math.round(v)) : DEC === 1 ? (Math.round(v * 10) / 10).toFixed(1) : String(Math.round(v * 10) / 10);
     var p = s.split('.');
     p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return p.join('.');
   }
+  // 悬停提示：画图时顺手记下每个色块、点、行的位置和数，网页里鼠标移上去显示。只记不画，PNG 不受影响
+  // sh：矩形 {x, y, w, h}，圆 {cx, cy, r}，扇环 {cx, cy, r0, r1, a0, a1}
+  function addHit(ctx, sh, title, lines) {
+    var h = ctx.canvas && ctx.canvas.__hits;
+    if (h) h.push({ s: sh, t: String(title), l: lines || [] });
+  }
+  function tv(v, unit) { return isFinite(v) ? fmt(v) + (unit || '') : '—'; }
   function pct(v, signed) {
     var s = (Math.round(v * 1000) / 10).toFixed(1) + '%';
     return signed && v > 0 ? '+' + s : s;
@@ -619,6 +372,7 @@ var DOC = {};
     legend(ctx, [{ label: d.labelA || T.start, color: C.start }, { label: d.labelB || T.end, color: C.acc }], a.x, top - u(76));
     var X = function (v) { return x0 + (v - lo) / (hi - lo) * (x1 - x0); };
     var r = Math.max(u(8), Math.min(u(12), rowH * 0.1));
+    DEC = decOf(rows.map(function (q) { return q.e; }));
 
     rows.forEach(function (row, i) {
       var cy = top + rowH * (i + 0.5);
@@ -643,6 +397,7 @@ var DOC = {};
       ctx.globalAlpha = 1;
       dot(ctx, X(row.s), cy, r, C.start);
       dot(ctx, X(row.e), cy, r, col);
+      addHit(ctx, { x: a.x, y: cy - rowH / 2, w: a.w, h: rowH }, row.name, [(d.labelA || T.start) + '  ' + tv(row.s, d.unit), (d.labelB || T.end) + '  ' + tv(row.e, d.unit)]);
 
       // 终点数值放在终点上方
       ctx.font = font(24, 400);
@@ -682,6 +437,7 @@ var DOC = {};
   // gx / gy / size 是左边（或上面）那块图形占的正方形
   function shareLegend(ctx, rows, d, a, wide, gx, gy, size) {
     var cols = wide ? 1 : 2, colW, lx, ly, lh;
+    DEC = decOf(rows.map(function (r) { return r.v; }));
     if (wide) {
       lx = gx + size + u(90); colW = Math.min(a.x + a.w - lx + u(70), u(620));
       lh = Math.min(u(120), size / rows.length);
@@ -726,6 +482,7 @@ var DOC = {};
         ctx.fillStyle = C.cats[ci % C.cats.length];
         rr(ctx, gx + col * (cell + gap), gy + row * (cell + gap), cell, cell, cell * 0.18);
         ctx.fill();
+        addHit(ctx, { x: gx + col * (cell + gap), y: gy + row * (cell + gap), w: cell + gap, h: cell + gap }, r.name, [tv(r.v, d.unit), r.n + '%']);
       }
     });
     shareLegend(ctx, rows, d, a, wide, gx, gy, size);
@@ -756,6 +513,7 @@ var DOC = {};
     ctx.fillText(T.target, a.x + a.w - u(232), ly);
     var X = function (v) { return x0 + Math.min(v, maxRate) / maxRate * (x1 - x0); };
     var bandH = Math.min(u(64), rowH * 0.58), barH = bandH * 0.38;
+    var decA = decOf(rows.map(function (q) { return q.v; })), decT = decOf(rows.map(function (q) { return q.t; }));
 
     rows.forEach(function (row, i) {
       var cy = top + rowH * (i + 0.5);
@@ -772,6 +530,7 @@ var DOC = {};
       var hit = row.rate >= 1;
       ctx.fillStyle = hit ? C.acc : C.down;
       ctx.fillRect(x0, cy - barH / 2, Math.max(u(2), X(row.rate) - x0), barH);
+      addHit(ctx, { x: a.x, y: cy - rowH / 2, w: a.w, h: rowH }, row.name, [tv(row.v, d.unit) + ' / ' + tv(row.t, d.unit) + ' (' + T.target + ')', pct(row.rate)]);
       ctx.fillStyle = C.ink;
       ctx.fillRect(X(1) - u(3), cy - bandH / 2 - u(6), u(6), bandH + u(12));
 
@@ -781,7 +540,8 @@ var DOC = {};
       ctx.fillText(pct(row.rate), a.x + a.w, cy - u(14));
       ctx.font = font(22, 400);
       ctx.fillStyle = C.ink2;
-      ctx.fillText(fmt(row.v) + ' / ' + fmt(row.t), a.x + a.w, cy + u(22));
+      DEC = decA; var sv = fmt(row.v); DEC = decT;
+      ctx.fillText(sv + ' / ' + fmt(row.t), a.x + a.w, cy + u(22));
     });
 
     var ay = top + rowH * rows.length + u(34);
@@ -817,8 +577,105 @@ var DOC = {};
     return 'rgb(' + ch(16) + ',' + ch(8) + ',' + ch(0) + ')';
   }
 
-  // ④ 日历热力图：12 个小月历拼成一年，竖版 3×4、横版 6×2；颜色越深数越大，没数据的日子用浅灰
+  // ④ 日历热力图：一周一列、周一在上，左边写一三五，上面写月份，
+  // 图例在右下角。横版一年排一条；竖版拆成上下半年两条，格子才不会太小。颜色越深数越大，没数据的日子是浅灰
   function calendar(ctx, d, opt) {
+    var a = frame(ctx, opt);
+    var byYear = {}, vals = {};
+    d.rows.forEach(function (r) {
+      var p = parseDate(r.name), v = num(r.a);
+      if (!p || !isFinite(v)) return;
+      byYear[p.y] = (byYear[p.y] || 0) + 1;
+      var k = dateKey(p);
+      vals[k] = (vals[k] || 0) + v;
+    });
+    var year = 0, most = 0;
+    Object.keys(byYear).forEach(function (y) { if (byYear[y] > most) { most = byYear[y]; year = +y; } });
+    if (!year) return empty(ctx, a, opt);
+
+    var lo = Infinity, hi = -Infinity;
+    Object.keys(vals).forEach(function (k) {
+      if (+k.slice(0, 4) !== year) return;
+      if (vals[k] < lo) lo = vals[k];
+      if (vals[k] > hi) hi = vals[k];
+    });
+    // 和组件一样：最浅 = 卡片底色往最深色走 35%；深色底上最深色提亮，越多越亮
+    var dark = luma(hex6(C.card) || '#FFFFFF') < 0.35, top = hex6(C.acc) || '#2A669F';
+    if (dark) top = mixHex(top, '#FFFFFF', 0.18);
+    var low = mixHex(hex6(C.card) || '#FFFFFF', top, 0.35);
+    var color = function (v) { return mix(low, top, hi > lo ? (v - lo) / (hi - lo) : 1); };
+    var none = mix(hex6(C.card) || '#FFFFFF', hex6(C.ink) || '#2D2A26', 0.1);
+
+    // 一年拆成几条：每条从该段第一天所在的周开始，周一在上
+    var DAY = 86400000, t0 = Date.UTC(year, 0, 1);
+    var wday = function (t) { return (new Date(t).getUTCDay() + 6) % 7; };
+    var strips = a.w > a.h * 1.6 ? [[1, 12]] : [[1, 6], [7, 12]];
+    var parts = strips.map(function (sp) {
+      var from = Date.UTC(year, sp[0] - 1, 1), to = Date.UTC(year, sp[1], 1);
+      return { from: from, to: to, off: wday(from), cols: Math.ceil((wday(from) + (to - from) / DAY) / 7) };
+    });
+    var cols = Math.max.apply(null, parts.map(function (p) { return p.cols; }));
+
+    // 版面：左边写星期，每条上面一行写月份（第一条左上角写年份），最下面一行是图例
+    // 字号跟着格子走：先按默认字号估一次格子，只画图（bare）时画布矮，字不至于太小
+    var est = (a.w - u(70)) / cols / s, fs = Math.max(20, Math.min(30, est * 0.62)), k = fs / 20;
+    ctx.font = font(fs * 1.1, 700);
+    var left = Math.max(ctx.measureText(String(year)).width, u(30 * k)) + u(14 * k);
+    var head = u(40 * k), stripGap = u(36 * k), legendH = u(56 * k);
+    var cell = Math.min((a.w - left) / cols,
+      (a.h - legendH - parts.length * head - (parts.length - 1) * stripGap) / (parts.length * 7));
+    var gridW = left + cell * cols, gridH = parts.length * (head + cell * 7) + (parts.length - 1) * stripGap;
+    var gx = a.x + (a.w - gridW) / 2 + left, gy = a.y + (a.h - gridH - legendH) / 2;
+    var gap = Math.max(1, cell * 0.12), rad = Math.min(cell * 0.18, u(4));
+
+    parts.forEach(function (p, pi) {
+      var y0 = gy + pi * (head + cell * 7 + stripGap), cy = y0 + head;
+      ctx.textBaseline = 'alphabetic';
+      if (pi === 0) {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = C.ink2;
+        ctx.font = font(fs * 1.1, 700);
+        ctx.fillText(String(year), gx - left, cy - u(12 * k));
+      }
+      ctx.font = font(fs, 400);
+      ctx.fillStyle = C.ink2;
+      ctx.textAlign = 'left';
+      for (var mo = strips[pi][0]; mo <= strips[pi][1]; mo++) {
+        var c = Math.floor((p.off + (Date.UTC(year, mo - 1, 1) - p.from) / DAY) / 7);
+        ctx.fillText(T.month(mo), gx + c * cell, cy - u(12 * k));
+      }
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      [0, 2, 4].forEach(function (r) { ctx.fillText(T.wd[r], gx - u(10 * k), cy + r * cell + cell / 2); });
+      for (var t = p.from; t < p.to; t += DAY) {
+        var i = p.off + (t - p.from) / DAY, dt = new Date(t);
+        var key = year + '-' + pad2(dt.getUTCMonth() + 1) + '-' + pad2(dt.getUTCDate()), v = vals[key];
+        ctx.fillStyle = v === undefined ? none : color(v);
+        rr(ctx, gx + Math.floor(i / 7) * cell + gap / 2, cy + (i % 7) * cell + gap / 2, cell - gap, cell - gap, rad);
+        ctx.fill();
+        if (v !== undefined) addHit(ctx, { x: gx + Math.floor(i / 7) * cell, y: cy + (i % 7) * cell, w: cell, h: cell }, key + ' ' + T.wd[i % 7], [tv(v, d.unit)]);
+      }
+    });
+
+    // 图例：少 □□□□□ 多，靠右下
+    var sw = u(26 * k), sp = u(4 * k), ly = gy + gridH + legendH - sw / 2 - u(4 * k), right = gx + cell * cols;
+    ctx.font = font(fs * 1.1, 400);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    var moreW = ctx.measureText(T.more).width, lessW = ctx.measureText(T.less).width;
+    var bx = right - moreW - u(10 * k) - 5 * (sw + sp) + sp;
+    ctx.fillStyle = C.ink2;
+    ctx.fillText(T.less, bx - u(10 * k) - lessW, ly);
+    for (var k = 0; k < 5; k++) {
+      ctx.fillStyle = mix(low, top, k / 4);
+      rr(ctx, bx + k * (sw + sp), ly - sw / 2, sw, sw, u(4)); ctx.fill();
+    }
+    ctx.fillStyle = C.ink2;
+    ctx.fillText(T.more, right - moreW, ly);
+  }
+  // ④-2 月历热力图：12 个小月历拼成一年，竖版 3×4、横版 6×2，最高那天加黑框。
+  // 和上面一年一条的日历热力图分工：那个看全年走势和星期规律，这个像翻日历，按月找具体哪一天
+  function calendarMonths(ctx, d, opt) {
     var a = frame(ctx, opt);
     var byYear = {}, vals = {};
     d.rows.forEach(function (r) {
@@ -888,6 +745,7 @@ var DOC = {};
         ctx.fillStyle = v === undefined ? C.rule : color(v);
         rr(ctx, cx + inset, cy + inset, cell - inset * 2, cell - inset * 2, cell * 0.18);
         ctx.fill();
+        if (v !== undefined) addHit(ctx, { x: cx, y: cy, w: cell, h: cell }, key + ' ' + WD[idx % 7], [tv(v, d.unit)]);
         if (key === hiKey) {
           ctx.strokeStyle = C.ink;
           ctx.lineWidth = Math.max(1.5, cell * 0.08);
@@ -897,6 +755,8 @@ var DOC = {};
       }
     }
   }
+
+
 
   /* ===== 常用图：条形图、柱形图、折线图、环形图、堆积柱形图、瀑布图、数字卡 ===== */
 
@@ -945,6 +805,7 @@ var DOC = {};
 
   // 纵轴：浅色网格线 + 左边刻度，0 那条线深一点。返回把数值换成 y 坐标的函数
   function yAxis(ctx, x0, x1, top, bottom, tk) {
+    var keep = DEC; DEC = null;
     var lo = tk[0], hi = tk[tk.length - 1], big = Math.max(Math.abs(lo), Math.abs(hi));
     var Y = function (v) { return bottom - (v - lo) / (hi - lo) * (bottom - top); };
     ctx.font = font(24, 400);
@@ -957,12 +818,16 @@ var DOC = {};
       ctx.fillStyle = C.ink2;
       ctx.fillText(short(t, big), x0 - u(14), Y(t));
     });
+    DEC = keep;
     return Y;
   }
   function yAxisWidth(ctx, tk) {
-    var big = Math.max(Math.abs(tk[0]), Math.abs(tk[tk.length - 1]));
+    var big = Math.max(Math.abs(tk[0]), Math.abs(tk[tk.length - 1])), keep = DEC;
     ctx.font = font(24, 400);
-    return Math.max.apply(null, tk.map(function (t) { return ctx.measureText(short(t, big)).width; })) + u(14);
+    DEC = null;
+    var w = Math.max.apply(null, tk.map(function (t) { return ctx.measureText(short(t, big)).width; })) + u(14);
+    DEC = keep;
+    return w;
   }
 
   // 横轴类别名：放不下先折成两行，再缩字号，还放不下就隔几个写一个
@@ -1044,10 +909,13 @@ var DOC = {};
     legend(ctx, names.map(function (n, k) { return { label: n, color: C.cats[k] }; }), a.x, a.y + u(14));
 
     var top = a.y + u(80), labelW = u(190);
+    var decs = names.map(function (_, k) { return decOf(rows.map(function (r) { return r.v[k]; })); });
+    var decTot = decOf(rows.map(function (r) { return r.t; }));
+    var fk = function (v, k) { DEC = decs[k]; return fmt(v); }, ftot = function (v) { DEC = decTot; return fmt(v); };
     ctx.font = font(mode === 'group' ? 24 : 28, 700);
     var valW = mode === 'pct' ? u(8) : Math.max.apply(null, rows.map(function (r) {
-      return mode === 'group' ? Math.max.apply(null, r.v.map(function (v) { return ctx.measureText(fmt(v) + unit).width; }))
-        : ctx.measureText(fmt(r.t) + unit).width;
+      return mode === 'group' ? Math.max.apply(null, r.v.map(function (v, k) { return ctx.measureText(fk(v, k) + unit).width; }))
+        : ctx.measureText(ftot(r.t) + unit).width;
     })) + u(20);
     var x0 = a.x + labelW, x1 = a.x + a.w - valW;
     var max = mode === 'pct' ? 1 : Math.max.apply(null, rows.map(function (r) { return mode === 'group' ? Math.max.apply(null, r.v) : r.t; }));
@@ -1062,6 +930,9 @@ var DOC = {};
       ctx.fillStyle = C.ink;
       ctx.font = font(30, 500);
       ctx.fillText(fit(ctx, r.name, labelW - u(20)), a.x, cy);
+      addHit(ctx, { x: a.x, y: cy - rowH / 2, w: a.w, h: rowH }, r.name, names.map(function (nm, k) {
+        return nm + '  ' + tv(r.v[k], unit) + (mode === 'pct' ? ' (' + r.p[k] + '%)' : '');
+      }).concat(mode === 'stack' ? [T.total + '  ' + tv(r.t, unit)] : []));
       if (mode === 'group') {
         var bh = Math.min(u(40), rowH * 0.78 / n);
         r.v.forEach(function (v, k) {
@@ -1071,7 +942,7 @@ var DOC = {};
           ctx.fill();
           ctx.fillStyle = C.ink;
           ctx.font = font(Math.min(24, bh / s * 0.8), 700);
-          ctx.fillText(fmt(v) + unit, X(v) + u(10), y + bh / 2);
+          ctx.fillText(fk(v, k) + unit, X(v) + u(10), y + bh / 2);
         });
         return;
       }
@@ -1085,7 +956,7 @@ var DOC = {};
         else { ctx.beginPath(); ctx.rect(xs, cy - barH / 2, Math.max(0, xe - xs), barH); }
         ctx.fill();
         // 段里写数：100% 堆积写百分比，堆积写数值；放不下就不写
-        var txt = mode === 'pct' ? r.p[k] + '%' : fmt(v);
+        var txt = mode === 'pct' ? r.p[k] + '%' : fk(v, k);
         ctx.font = font(24, 700);
         if (ctx.measureText(txt).width + u(14) < xe - xs) {
           ctx.fillStyle = onColor(C.cats[k]);
@@ -1098,7 +969,7 @@ var DOC = {};
         ctx.fillStyle = C.ink;
         ctx.font = font(28, 700);
         ctx.textAlign = 'left';
-        ctx.fillText(fmt(r.t) + unit, X(r.t) + u(12), cy);
+        ctx.fillText(ftot(r.t) + unit, X(r.t) + u(12), cy);
       }
     });
   }
@@ -1128,8 +999,13 @@ var DOC = {};
     } else Y = yAxis(ctx, x0, x1, top, bottom, tk);
     var slot = (x1 - x0) / rows.length, X = function (i) { return x0 + slot * (i + 0.5); };
     var fs = Math.max(18, Math.min(26, slot / s * 0.3)), n = names.length;
+    var cdecs = names.map(function (_, k) { return decOf(rows.map(function (r) { return r.v[k]; })); });
+    var cdecTot = decOf(rows.map(function (r) { return r.t; }));
 
     rows.forEach(function (r, i) {
+      addHit(ctx, { x: X(i) - slot / 2, y: top, w: slot, h: bottom - top }, r.name, names.map(function (nm, k) {
+        return nm + '  ' + tv(r.v[k], unit) + (mode === 'pct' ? ' (' + r.p[k] + '%)' : '');
+      }).concat(mode === 'stack' ? [T.total + '  ' + tv(r.t, unit)] : []));
       if (mode === 'group') {
         var gw = Math.min(u(44) * n, slot * 0.8), bw = gw / n;
         r.v.forEach(function (v, k) {
@@ -1141,6 +1017,7 @@ var DOC = {};
         // 每组只在最高那根上写数，避免挤
         ctx.font = font(fs, 700);
         var hi = Math.max.apply(null, r.v), kh = r.v.indexOf(hi);
+        DEC = cdecs[kh];
         if (ctx.measureText(fmt(hi) + unit).width < slot * 0.96) {
           ctx.fillStyle = C.ink;
           ctx.textAlign = 'center';
@@ -1171,6 +1048,7 @@ var DOC = {};
         cum += val;
       });
       if (mode === 'stack') {
+        DEC = cdecTot;
         ctx.font = font(fs, 700);
         ctx.fillStyle = C.ink;
         ctx.textAlign = 'center';
@@ -1194,6 +1072,7 @@ var DOC = {};
 
     var lo = Math.min(0, rows[rows.length - 1].v), hi = Math.max(0, rows[0].v);
     var unit = d.unit || '';
+    DEC = decOf(rows.map(function (r) { return r.v; }));
     ctx.font = font(30, 700);
     var valW = Math.max.apply(null, rows.map(function (r) { return ctx.measureText(fmt(r.v) + unit).width; })) + u(24);
     var labelW = u(190), x0 = a.x + labelW + (lo < 0 ? valW : 0), x1 = a.x + a.w - (hi > 0 ? valW : 0);
@@ -1209,6 +1088,7 @@ var DOC = {};
       ctx.font = font(32, 500);
       ctx.fillText(fit(ctx, row.name, labelW - u(20)), a.x, cy);
 
+      addHit(ctx, { x: a.x, y: cy - rowH / 2, w: a.w, h: rowH }, row.name, [tv(row.v, unit)]);
       ctx.fillStyle = !d.highlight || row.name === d.highlight ? C.acc : C.start;
       dataBar(ctx, X(0), cy - barH / 2, Math.max(u(2), Math.abs(X(row.v) - X(0))) * (row.v < 0 ? -1 : 1), barH, u(8), row.v < 0 ? 'l' : 'r');
       ctx.fill();
@@ -1241,11 +1121,13 @@ var DOC = {};
     var X = function (i) { return x0 + slot * (i + 0.5); };
 
     var unit = d.unit || '', fs = Math.max(18, Math.min(26, slot / s * 0.34));
+    DEC = decOf(vs);
     ctx.font = font(fs, 700);
     var crowded = rows.some(function (r) { return ctx.measureText(fmt(r.v) + unit).width > slot * 0.96; });
     var iMax = vs.indexOf(Math.max.apply(null, vs)), iMin = vs.indexOf(Math.min.apply(null, vs));
 
     rows.forEach(function (r, i) {
+      addHit(ctx, { x: X(i) - slot / 2, y: top, w: slot, h: bottom - top }, r.name, [tv(r.v, unit)]);
       ctx.fillStyle = !d.highlight || r.name === d.highlight ? C.acc : C.start;
       dataBar(ctx, X(i) - bw / 2, Y(0), bw, Y(r.v) - Y(0) || -u(2), u(8), r.v < 0 ? 'b' : 't');
       ctx.fill();
@@ -1279,7 +1161,9 @@ var DOC = {};
       return null;
     }).filter(Boolean);
     ctx.font = font(28, 700);
-    var endW = Math.max.apply(null, ends.map(function (e) { return ctx.measureText(fmt(e.v) + unit).width; }));
+    var ldecs = names.map(function (_, k) { return decOf(rows.map(function (r) { return r.v[k]; })); });
+    var fe = function (e) { DEC = ldecs[e.k]; return fmt(e.v); };
+    var endW = Math.max.apply(null, ends.map(function (e) { return ctx.measureText(fe(e) + unit).width; }));
     if (multi) {
       ctx.font = font(24, 400);
       endW = Math.max(endW, Math.max.apply(null, ends.map(function (e) { return ctx.measureText(names[e.k]).width; })));
@@ -1342,12 +1226,16 @@ var DOC = {};
       ctx.textBaseline = 'middle';
       ctx.fillStyle = C.ink;
       ctx.font = font(28, 700);
-      ctx.fillText(fmt(e.v) + unit, X(e.i) + u(22), multi ? l.y - u(14) : l.y);
+      ctx.fillText(fe(e) + unit, X(e.i) + u(22), multi ? l.y - u(14) : l.y);
       if (multi) {
         ctx.font = font(24, 400);
         ctx.fillStyle = C.ink2;
         ctx.fillText(names[e.k], X(e.i) + u(22), l.y + u(16));
       }
+    });
+    var hw = (x1 - x0) / Math.max(1, n);
+    rows.forEach(function (r, i) {
+      addHit(ctx, { x: X(i) - hw / 2, y: top, w: hw, h: bottom - top }, r.name, names.map(function (nm, k) { return (multi ? nm + '  ' : '') + tv(r.v[k], unit); }));
     });
     xLabels(ctx, rows.map(function (r) { return r.name; }), X, bottom + u(16), (x1 - x0) / Math.max(1, n));
   }
@@ -1371,6 +1259,7 @@ var DOC = {};
       ctx.lineWidth = th;
       ctx.lineCap = 'butt';
       ctx.stroke();
+      addHit(ctx, { cx: cx, cy: cy, r0: R - th, r1: R, a0: ang, a1: ang + sweep }, r.name, [tv(r.v, d.unit), r.n + '%']);
       cuts.push(ang);
       ang += sweep;
     });
@@ -1427,6 +1316,7 @@ var DOC = {};
     var slot = (x1 - x0) / bars.length, bw = Math.min(u(96), slot * 0.64), unit = d.unit || '';
     var X = function (i) { return x0 + slot * (i + 0.5); };
     var fs = Math.max(18, Math.min(26, slot / s * 0.3));
+    DEC = decOf(bars.map(function (b) { return b.v; }).concat(bars.map(function (b) { return b.y1; })));
 
     bars.forEach(function (b, i) {
       if (i > 0) {
@@ -1439,6 +1329,7 @@ var DOC = {};
       ctx.fillStyle = b.total ? TOT : b.v >= 0 ? C.acc : C.down;
       var yt = Y(Math.max(b.y0, b.y1)), yb = Y(Math.min(b.y0, b.y1));
       ctx.beginPath(); ctx.rect(X(i) - bw / 2, yt, bw, Math.max(u(2), yb - yt)); ctx.fill();
+      addHit(ctx, { x: X(i) - slot / 2, y: top, w: slot, h: bottom - top }, b.name, [b.total ? tv(b.v, unit) : (b.v >= 0 ? '+' : '−') + tv(Math.abs(b.v), unit), T.total + '  ' + tv(b.y1, unit)]);
       ctx.font = font(fs, 700);
       ctx.fillStyle = C.ink;
       ctx.textAlign = 'center';
@@ -1553,14 +1444,15 @@ var DOC = {};
 
   // 排版：第一个格子是数字卡时单独占一整行；其余的图横版每行 2–3 个，长图每行 1 个。
   // 横版 1920×1080（PPT、投屏），长图宽 1080、高度按格子数算（手机）
-  function dashLayout(d, W, H) {
+  function dashLayout(d, W, H, sign) {
+    var hasSign = sign !== undefined ? !!sign : !!d.sign;   // 署名可能写在看板上，也可能写在整份 DOC 上
     var panels = (d.panels || []).filter(function (p) { return p && API[p.kind] && p.kind !== 'dashboard' && p.kind !== 'palette'; }).slice(0, 7);
     var wideMode = W > H, out = [];
     var kp = panels.length && panels[0].kind === 'kpi' ? panels[0] : null, rest = kp ? panels.slice(1) : panels;
     var nk = kp ? Math.min(6, (kp.rows || []).length) : 0;
     if (wideMode) {
       var k = W / 1920, ps = 0.55 * k, mx = 48 * k, gap = 24 * k;
-      var y = 156 * k, bottom = H - (d.sign ? 60 : 40) * k;
+      var y = 156 * k, bottom = H - (hasSign ? 64 : 40) * k;
       if (kp) {
         var kh = (kp.title ? 250 : 200) * k;
         out.push({ p: kp, cols: nk, r: { x: mx, y: y, w: W - mx * 2, h: kh, s: ps } });
@@ -1581,21 +1473,21 @@ var DOC = {};
       y2 += kh2 + gap2;
     }
     rest.forEach(function (p) {
-      var h = (p.kind === 'calendar' ? 820 : 640) * k2;
+      var h = ({ calendar: 560, calendarMonths: 820, imageCards: 760 }[p.kind] || 640) * k2;
       out.push({ p: p, r: { x: mx2, y: y2, w: W - mx2 * 2, h: h, s: ps2 } });
       y2 += h + gap2;
     });
-    return { panels: out, h: y2 - gap2 + (d.sign ? 100 : 56) * k2, page: k2, wide: false };
+    return { panels: out, h: y2 - gap2 + (hasSign ? 100 : 56) * k2, page: k2, wide: false };
   }
 
   // 长图要多高：先算好再建 canvas
-  function dashboardHeight(d, W) { return Math.round(dashLayout(d, W || 1080, Infinity).h); }
+  function dashboardHeight(d, W, sign) { return Math.round(dashLayout(d, W || 1080, Infinity, sign).h); }
 
   // ⑫ 看板：d.panels 是几张图（写法和单张图一样），横版还是长图看 canvas 的宽高
   function dashboard(ctx, d, opt) {
     setup(ctx);
     useTheme(opt);
-    var L = dashLayout(d, W, H), k = L.page;
+    var L = dashLayout(d, W, H, opt.sign || d.sign), k = L.page;
     ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, W, H);
     ctx.textBaseline = 'alphabetic';
@@ -1628,6 +1520,539 @@ var DOC = {};
     }
   }
 
+  /* ===== ⑬ 方块地图：每个省（或美国每个州）一个方块，按大致方位排，不画边界、不联网 ===== */
+  // 中国 34 个省级行政区（含台湾、香港、澳门），7 列 × 8 行；[中文名, 英文名, 代码, 列, 行]
+  var CN_TILES = [
+    ['黑龙江', 'Heilongjiang', 'HL', 6, 0], ['内蒙古', 'Inner Mongolia', 'NM', 5, 1], ['吉林', 'Jilin', 'JL', 6, 1],
+    ['新疆', 'Xinjiang', 'XJ', 0, 2], ['甘肃', 'Gansu', 'GS', 1, 2], ['宁夏', 'Ningxia', 'NX', 2, 2], ['山西', 'Shanxi', 'SX', 3, 2],
+    ['河北', 'Hebei', 'HE', 4, 2], ['北京', 'Beijing', 'BJ', 5, 2], ['辽宁', 'Liaoning', 'LN', 6, 2],
+    ['西藏', 'Xizang', 'XZ', 0, 3], ['青海', 'Qinghai', 'QH', 1, 3], ['陕西', 'Shaanxi', 'SN', 2, 3], ['河南', 'Henan', 'HA', 3, 3],
+    ['山东', 'Shandong', 'SD', 4, 3], ['天津', 'Tianjin', 'TJ', 5, 3],
+    ['四川', 'Sichuan', 'SC', 1, 4], ['重庆', 'Chongqing', 'CQ', 2, 4], ['湖北', 'Hubei', 'HB', 3, 4], ['安徽', 'Anhui', 'AH', 4, 4],
+    ['江苏', 'Jiangsu', 'JS', 5, 4], ['上海', 'Shanghai', 'SH', 6, 4],
+    ['云南', 'Yunnan', 'YN', 1, 5], ['贵州', 'Guizhou', 'GZ', 2, 5], ['湖南', 'Hunan', 'HN', 3, 5], ['江西', 'Jiangxi', 'JX', 4, 5],
+    ['浙江', 'Zhejiang', 'ZJ', 5, 5],
+    ['广西', 'Guangxi', 'GX', 2, 6], ['广东', 'Guangdong', 'GD', 3, 6], ['福建', 'Fujian', 'FJ', 4, 6], ['台湾', 'Taiwan', 'TW', 5, 6],
+    ['海南', 'Hainan', 'HI', 2, 7], ['澳门', 'Macao', 'MO', 3, 7], ['香港', 'Hong Kong', 'HK', 4, 7]
+  ];
+  // 美国 50 个州 + 华盛顿特区，11 列 × 8 行
+  var US_TILES = [
+    ['阿拉斯加', 'Alaska', 'AK', 0, 0], ['缅因', 'Maine', 'ME', 10, 0],
+    ['威斯康星', 'Wisconsin', 'WI', 5, 1], ['佛蒙特', 'Vermont', 'VT', 9, 1], ['新罕布什尔', 'New Hampshire', 'NH', 10, 1],
+    ['华盛顿州', 'Washington', 'WA', 0, 2], ['爱达荷', 'Idaho', 'ID', 1, 2], ['蒙大拿', 'Montana', 'MT', 2, 2], ['北达科他', 'North Dakota', 'ND', 3, 2],
+    ['明尼苏达', 'Minnesota', 'MN', 4, 2], ['伊利诺伊', 'Illinois', 'IL', 5, 2], ['密歇根', 'Michigan', 'MI', 6, 2], ['纽约州', 'New York', 'NY', 8, 2],
+    ['马萨诸塞', 'Massachusetts', 'MA', 9, 2],
+    ['俄勒冈', 'Oregon', 'OR', 0, 3], ['内华达', 'Nevada', 'NV', 1, 3], ['怀俄明', 'Wyoming', 'WY', 2, 3], ['南达科他', 'South Dakota', 'SD', 3, 3],
+    ['艾奥瓦', 'Iowa', 'IA', 4, 3], ['印第安纳', 'Indiana', 'IN', 5, 3], ['俄亥俄', 'Ohio', 'OH', 6, 3], ['宾夕法尼亚', 'Pennsylvania', 'PA', 7, 3],
+    ['新泽西', 'New Jersey', 'NJ', 8, 3], ['康涅狄格', 'Connecticut', 'CT', 9, 3], ['罗得岛', 'Rhode Island', 'RI', 10, 3],
+    ['加利福尼亚', 'California', 'CA', 0, 4], ['犹他', 'Utah', 'UT', 1, 4], ['科罗拉多', 'Colorado', 'CO', 2, 4], ['内布拉斯加', 'Nebraska', 'NE', 3, 4],
+    ['密苏里', 'Missouri', 'MO', 4, 4], ['肯塔基', 'Kentucky', 'KY', 5, 4], ['西弗吉尼亚', 'West Virginia', 'WV', 6, 4], ['弗吉尼亚', 'Virginia', 'VA', 7, 4],
+    ['马里兰', 'Maryland', 'MD', 8, 4], ['特拉华', 'Delaware', 'DE', 9, 4],
+    ['亚利桑那', 'Arizona', 'AZ', 1, 5], ['新墨西哥', 'New Mexico', 'NM', 2, 5], ['堪萨斯', 'Kansas', 'KS', 3, 5], ['阿肯色', 'Arkansas', 'AR', 4, 5],
+    ['田纳西', 'Tennessee', 'TN', 5, 5], ['北卡罗来纳', 'North Carolina', 'NC', 6, 5], ['南卡罗来纳', 'South Carolina', 'SC', 7, 5],
+    ['华盛顿特区', 'District of Columbia', 'DC', 8, 5],
+    ['俄克拉何马', 'Oklahoma', 'OK', 3, 6], ['路易斯安那', 'Louisiana', 'LA', 4, 6], ['密西西比', 'Mississippi', 'MS', 5, 6], ['亚拉巴马', 'Alabama', 'AL', 6, 6],
+    ['佐治亚', 'Georgia', 'GA', 7, 6],
+    ['夏威夷', 'Hawaii', 'HI', 0, 7], ['得克萨斯', 'Texas', 'TX', 3, 7], ['佛罗里达', 'Florida', 'FL', 8, 7]
+  ];
+  // 名字对上方块：去掉「省」「市」「自治区」这类后缀，英文不分大小写、忽略空格，也认代码（GD、CA）
+  function tileKey(s) { return String(s).toLowerCase().replace(/[\s.\-_']/g, ''); }
+  function matchTile(tiles, name, region) {
+    var n = String(name).trim(), k = tileKey(n);
+    var zh = n.replace(/(特别行政区|维吾尔自治区|壮族自治区|回族自治区|自治区|省|市)$/, '');
+    var alias = { tibet: 'xizang', macau: 'macao', washingtondc: 'districtofcolumbia', dc: 'districtofcolumbia' };
+    if (alias[k]) k = alias[k];
+    for (var i = 0; i < tiles.length; i++) {
+      var t = tiles[i];
+      if (zh === t[0] || (zh.length >= 2 && t[0].indexOf(zh) === 0) || k === tileKey(t[1]) || k === t[2].toLowerCase()) return t;
+      if (region === 'us' && zh + '州' === t[0]) return t;
+    }
+    return null;
+  }
+  function tileMap(ctx, d, opt) {
+    var a = frame(ctx, opt);
+    var rows = (d.rows || []).map(function (r) { return { name: r.name, v: num(r.a) }; }).filter(function (r) { return r.name != null && isFinite(r.v); });
+    var region = d.region === 'us' || d.region === 'cn' ? d.region : null;
+    if (!region) {
+      var hit = function (tiles, rg) { return rows.filter(function (r) { return matchTile(tiles, r.name, rg); }).length; };
+      region = hit(US_TILES, 'us') > hit(CN_TILES, 'cn') ? 'us' : 'cn';
+    }
+    var tiles = region === 'us' ? US_TILES : CN_TILES, val = {};
+    rows.forEach(function (r) { var t = matchTile(tiles, r.name, region); if (t) val[t[2]] = (val[t[2]] || 0) + r.v; });
+    var keys = Object.keys(val);
+    if (!keys.length) return empty(ctx, a, opt);
+    var lo = Math.min.apply(null, keys.map(function (k) { return val[k]; })), hi = Math.max.apply(null, keys.map(function (k) { return val[k]; }));
+    var big = Math.max(Math.abs(lo), Math.abs(hi));
+    DEC = decOf(keys.map(function (k) { return val[k]; }), shortDiv(big));
+    var low = mixHex(hex6(C.card) || '#FFFFFF', hex6(C.acc) || '#2A669F', 0.15), top = hex6(C.acc) || '#2A669F';
+    var color = function (v) { return mix(low, top, hi > lo ? (v - lo) / (hi - lo) : 1); };
+    var none = mix(hex6(C.card) || '#FFFFFF', hex6(C.ink) || '#2D2A26', 0.07);
+    var cols = 0, rowsN = 0;
+    tiles.forEach(function (t) { cols = Math.max(cols, t[3] + 1); rowsN = Math.max(rowsN, t[4] + 1); });
+
+    // 横版：地图在左，右边是前几名；竖版：地图在上，图例在下
+    var wide = a.w > a.h * 1.25, legendH = u(64);
+    var listW = wide ? Math.min(a.w * 0.36, u(560)) : 0;
+    var mapW = a.w - listW - (wide ? u(40) : 0), mapH = a.h - legendH;
+    var cell = Math.min(mapW / cols, mapH / rowsN), gap = Math.max(2, cell * 0.08);
+    var mx = a.x + (mapW - cell * cols) / 2, my = a.y + (mapH - cell * rowsN) / 2;
+    // 一张图只用一种写法：全名都放得下就写全名，有一个放不下就全写代码（英文常见）
+    var fs0 = Math.min(26, cell / s * 0.24), inner0 = cell - Math.max(2, cell * 0.08) * 2, useCode = false;
+    ctx.font = font(fs0, 700);
+    tiles.forEach(function (t) { if (ctx.measureText(T === TEXT.en ? t[1] : t[0]).width * 0.72 > inner0) useCode = true; });
+    tiles.forEach(function (t) {
+      var x = mx + t[3] * cell, y = my + t[4] * cell, v = val[t[2]], has = v !== undefined;
+      var fill = has ? color(v) : none;
+      ctx.fillStyle = fill;
+      rr(ctx, x + gap / 2, y + gap / 2, cell - gap, cell - gap, Math.min(u(10), cell * 0.12)); ctx.fill();
+      addHit(ctx, { x: x, y: y, w: cell, h: cell }, T === TEXT.en ? t[1] : t[0], [has ? tv(v, d.unit) : T.noData.replace(/^.*[:：]\s*/, '')]);
+      var ink = has ? onColor(hex6(fill) || rgbHex(fill)) : C.ink2, inner = cell - gap * 2;
+      var label = useCode ? t[2] : T === TEXT.en ? t[1] : t[0];
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = ink;
+      var fs = fs0;
+      ctx.font = font(fs, 700);
+      if (ctx.measureText(label).width > inner) { fs = fs * inner / ctx.measureText(label).width; ctx.font = font(fs, 700); }
+      var showV = has && cell / s > 70;
+      ctx.fillText(label, x + cell / 2, y + cell / 2 - (showV ? cell * 0.13 : 0));
+      if (showV) {
+        ctx.font = font(Math.min(24, cell / s * 0.2), 400);
+        ctx.fillText(fitText(ctx, short(v, big) + (d.unit || ''), inner), x + cell / 2, y + cell / 2 + cell * 0.17);
+      }
+    });
+
+    // 图例：少 □□□□□ 多 · 最低 · 最高 · 灰色没有数据
+    var ly = a.y + a.h - legendH / 2, sw = u(24), lx = wide ? a.x : mx;
+    ctx.font = font(22, 400);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = C.ink2;
+    ctx.fillText(T.less, lx, ly);
+    lx += ctx.measureText(T.less).width + u(10);
+    for (var k = 0; k < 5; k++) { ctx.fillStyle = mix(low, top, k / 4); rr(ctx, lx + k * (sw + u(4)), ly - sw / 2, sw, sw, u(4)); ctx.fill(); }
+    lx += 5 * (sw + u(4)) + u(6);
+    ctx.fillStyle = C.ink2;
+    var tail = T.more + '   ' + T.noData;
+    ctx.fillText(fitText(ctx, tail, a.x + a.w - lx), lx, ly);
+
+    if (wide) {
+      var ranked = keys.map(function (k) { var t = tiles.filter(function (x) { return x[2] === k; })[0]; return { name: T === TEXT.en ? t[1] : t[0], v: val[k] }; })
+        .sort(function (p, q) { return q.v - p.v; });
+      var showN = Math.min(ranked.length, 10), lx0 = a.x + a.w - listW, rh = Math.min(u(56), (a.h - legendH) / Math.max(showN, 6));
+      var ly0 = a.y + (a.h - legendH - rh * showN) / 2;
+      ranked.slice(0, showN).forEach(function (r, i) {
+        var y = ly0 + i * rh + rh / 2;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = C.ink2;
+        ctx.font = font(22, 700);
+        ctx.fillText(String(i + 1), lx0, y);
+        ctx.fillStyle = C.ink;
+        ctx.font = font(24, 400);
+        ctx.fillText(fitText(ctx, r.name, listW * 0.42), lx0 + u(40), y);
+        var bx = lx0 + listW * 0.5, bw = listW * 0.32;
+        ctx.fillStyle = color(r.v);
+        dataBar(ctx, bx, y - u(9), Math.max(u(4), bw * (hi > 0 ? r.v / hi : 0)), u(18), u(5), 'r'); ctx.fill();
+        ctx.fillStyle = C.ink;
+        ctx.textAlign = 'right';
+        ctx.font = font(22, 700);
+        ctx.fillText(short(r.v, big) + (d.unit || ''), lx0 + listW, y);
+      });
+    }
+  }
+  function rgbHex(c) {
+    var m = /rgb\((\d+),(\d+),(\d+)\)/.exec(String(c).replace(/\s/g, ''));
+    if (!m) return '#888888';
+    return '#' + [m[1], m[2], m[3]].map(function (x) { var h = (+x).toString(16); return h.length < 2 ? '0' + h : h; }).join('');
+  }
+
+  /* ===== ⑭ 散点图：两个数有没有关系。虚线是两个数各自的平均，分出四块 ===== */
+  function scatter(ctx, d, opt) {
+    var a = frame(ctx, opt);
+    var pts = (d.rows || []).map(function (r) { return { name: r.name == null ? '' : String(r.name), x: num(r.a), y: num(r.b) }; })
+      .filter(function (p) { return isFinite(p.x) && isFinite(p.y); }).slice(0, 300);
+    if (pts.length < 2) return empty(ctx, a, opt);
+    var hl = (d.highlight || []).map(String);
+    var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
+    var tx = ticks(Math.min.apply(null, xs), Math.max.apply(null, xs), 5), ty = ticks(Math.min.apply(null, ys), Math.max.apply(null, ys), 5);
+    if (tx[0] > 0 && tx[0] <= (tx[tx.length - 1] - tx[0]) * 0.4) tx = ticks(0, tx[tx.length - 1], 5);
+    if (ty[0] > 0 && ty[0] <= (ty[ty.length - 1] - ty[0]) * 0.4) ty = ticks(0, ty[ty.length - 1], 5);
+    var bigX = Math.max(Math.abs(tx[0]), Math.abs(tx[tx.length - 1]));
+    var left = a.x + yAxisWidth(ctx, ty) + u(8), right = a.x + a.w - u(20), top = a.y + u(56), bottom = a.y + a.h - u(84);
+    var Y = yAxis(ctx, left, right, top, bottom, ty);
+    var X = function (v) { return left + (v - tx[0]) / (tx[tx.length - 1] - tx[0]) * (right - left); };
+    ctx.font = font(24, 400);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    DEC = null;
+    tx.forEach(function (t) {
+      ctx.strokeStyle = C.rule; ctx.lineWidth = u(1.5);
+      ctx.beginPath(); ctx.moveTo(X(t), top); ctx.lineTo(X(t), bottom); ctx.stroke();
+      ctx.fillStyle = C.ink2;
+      ctx.fillText(short(t, bigX), X(t), bottom + u(12));
+    });
+    // 轴标题：横轴写在右下，纵轴写在左上
+    ctx.font = font(24, 700);
+    ctx.fillStyle = C.ink2;
+    ctx.textAlign = 'right';
+    ctx.fillText((d.labelA || '') + ' →', right, bottom + u(48));
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('↑ ' + (d.labelB || ''), a.x, top - u(18));
+
+    // 平均线
+    var mxv = xs.reduce(function (p, v) { return p + v; }, 0) / xs.length, myv = ys.reduce(function (p, v) { return p + v; }, 0) / ys.length;
+    if (d.average !== false) {
+      ctx.save();
+      ctx.setLineDash([u(8), u(8)]);
+      ctx.strokeStyle = C.ink2; ctx.lineWidth = u(2);
+      ctx.beginPath(); ctx.moveTo(X(mxv), top); ctx.lineTo(X(mxv), bottom); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(left, Y(myv)); ctx.lineTo(right, Y(myv)); ctx.stroke();
+      ctx.restore();
+      ctx.font = font(20, 400);
+      ctx.fillStyle = C.ink2;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(T.avg, X(mxv) + u(8), bottom - u(6));
+      ctx.textAlign = 'right';
+      ctx.fillText(T.avg, right, Y(myv) - u(6));
+    }
+
+    // 点：有重点时，重点用强调色，其他变灰
+    var r0 = pts.length > 60 ? u(8) : u(12);
+    var isHl = function (p) { return hl.indexOf(p.name) >= 0; };
+    pts.slice().sort(function (p, q) { return (isHl(p) ? 1 : 0) - (isHl(q) ? 1 : 0); }).forEach(function (p) {
+      ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), isHl(p) ? r0 * 1.25 : r0, 0, Math.PI * 2);
+      ctx.fillStyle = hl.length && !isHl(p) ? C.start : C.acc;
+      ctx.globalAlpha = hl.length && !isHl(p) ? 0.7 : 0.85;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = u(2); ctx.strokeStyle = C.card; ctx.stroke();
+      addHit(ctx, { cx: X(p.x), cy: Y(p.y), r: Math.max(r0 * 1.6, u(14)) }, p.name, [(d.labelA || 'x') + '  ' + tv(p.x), (d.labelB || 'y') + '  ' + tv(p.y)]);
+    });
+
+    // 名字：点少全写；点多只写重点和最高、最低、最右、最左的几个；挡住别人的不写
+    var pick = pts;
+    if (pts.length > 12) {
+      var set = {};
+      pts.filter(isHl).forEach(function (p) { set[pts.indexOf(p)] = 1; });
+      [function (p, q) { return q.y - p.y; }, function (p, q) { return p.y - q.y; }, function (p, q) { return q.x - p.x; }, function (p, q) { return p.x - q.x; }]
+        .forEach(function (f) { pts.slice().sort(f).slice(0, 2).forEach(function (p) { set[pts.indexOf(p)] = 1; }); });
+      pick = pts.filter(function (p, i) { return set[i]; });
+    }
+    var boxes = [];
+    ctx.font = font(22, 400);
+    ctx.textBaseline = 'middle';
+    pick.forEach(function (p) {
+      if (!p.name) return;
+      var w = ctx.measureText(p.name).width, px = X(p.x), py = Y(p.y), h = u(26);
+      var tries = [[px + r0 + u(6), py - h / 2, 'left'], [px - r0 - u(6) - w, py - h / 2, 'left'], [px - w / 2, py - r0 - u(4) - h, 'left'], [px - w / 2, py + r0 + u(4), 'left']];
+      for (var i = 0; i < tries.length; i++) {
+        var b = { x: tries[i][0], y: tries[i][1], w: w, h: h };
+        if (b.x < left || b.x + w > right + u(10) || b.y < top - u(10) || b.y + h > bottom) continue;
+        if (boxes.some(function (o) { return b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h; })) continue;
+        boxes.push(b);
+        ctx.fillStyle = hl.length && !isHl(p) ? C.ink2 : C.ink;
+        ctx.textAlign = 'left';
+        ctx.fillText(p.name, b.x, b.y + h / 2);
+        break;
+      }
+    });
+  }
+
+  /* ===== ⑮ 表格：几列数一起看。第一列数字带条，涨跌带颜色和箭头 ===== */
+  function table(ctx, d, opt) {
+    var a = frame(ctx, opt);
+    var cols = (d.columns || [d.labelA || T.value]).slice(0, 5), fmts = d.formats || [], units = d.units || [];
+    var rows = (d.rows || []).map(function (r) { var v = vals(r); return { name: r.name == null ? '' : String(r.name), v: cols.map(function (_, k) { return num(v[k]); }) }; })
+      .filter(function (r) { return r.name; });
+    if (!rows.length) return empty(ctx, a, opt);
+    var sc = d.sort === false ? -1 : (typeof d.sort === 'number' ? d.sort : 0);
+    if (sc >= 0 && sc < cols.length) rows.sort(function (p, q) { return (isFinite(q.v[sc]) ? q.v[sc] : -1e300) - (isFinite(p.v[sc]) ? p.v[sc] : -1e300); });
+    var maxRows = Math.max(3, Math.floor((a.h - u(70)) / u(46)));
+    rows = rows.slice(0, Math.min(20, maxRows));
+    var barCol = d.bar === false ? -1 : (typeof d.bar === 'number' ? d.bar : 0);
+    if (barCol >= 0 && (fmts[barCol] === 'delta' || fmts[barCol] === 'pct')) barCol = -1;
+    var colMax = cols.map(function (_, k) { return Math.max.apply(null, rows.map(function (r) { return isFinite(r.v[k]) ? Math.abs(r.v[k]) : 0; })); });
+    var colDec = cols.map(function (_, k) { return decOf(rows.map(function (r) { return r.v[k]; }), shortDiv(colMax[k])); });
+    var cell = function (v, k) {
+      if (!isFinite(v)) return '—';
+      var f = fmts[k] || 'num';
+      if (f === 'pct') return (Math.round(v * 1000) / 10).toFixed(1) + '%';
+      if (f === 'delta') return (v > 0 ? '▲ ' : v < 0 ? '▼ ' : '') + (Math.round(Math.abs(v) * 1000) / 10).toFixed(1) + '%';
+      DEC = colDec[k];
+      return short(v, colMax[k]) + (units[k] || '');
+    };
+
+    var headH = u(60), rh = Math.min(u(96), (a.h - headH) / rows.length), fsz = Math.min(30, rh / s * 0.42);
+    ctx.font = font(fsz, 700);
+    var nameW = Math.min(a.w * 0.34, Math.max.apply(null, rows.map(function (r) { return ctx.measureText(r.name).width; })) + u(30));
+    var restW = a.w - nameW, colW = cols.map(function (_, k) { return k === barCol ? 1.8 : 1; });
+    var tot = colW.reduce(function (p, v) { return p + v; }, 0);
+    colW = colW.map(function (w) { return restW * w / tot; });
+    var tableH = headH + rh * rows.length, y0 = a.y + Math.max(0, (a.h - tableH) / 2 * 0.7);
+
+    // 表头
+    ctx.font = font(Math.min(24, fsz * 0.85), 400);
+    ctx.fillStyle = C.ink2;
+    ctx.textBaseline = 'middle';
+    var x = a.x + nameW;
+    cols.forEach(function (c, k) {
+      ctx.textAlign = 'right';
+      ctx.fillText(fitText(ctx, c, colW[k] - u(16)), x + colW[k] - u(12), y0 + headH / 2);
+      x += colW[k];
+    });
+    ctx.strokeStyle = C.ink2; ctx.lineWidth = u(2);
+    ctx.beginPath(); ctx.moveTo(a.x, y0 + headH); ctx.lineTo(a.x + a.w, y0 + headH); ctx.stroke();
+
+    rows.forEach(function (r, i) {
+      var y = y0 + headH + i * rh;
+      if (i % 2 === 1) { ctx.fillStyle = mix(hex6(C.card) || '#FFFFFF', hex6(C.ink) || '#2D2A26', 0.035); ctx.fillRect(a.x, y, a.w, rh); }
+      addHit(ctx, { x: a.x, y: y, w: a.w, h: rh }, r.name, cols.map(function (c, k) { return c + '  ' + cell(r.v[k], k); }));
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink;
+      ctx.font = font(fsz, 700);
+      ctx.fillText(fitText(ctx, r.name, nameW - u(24)), a.x + u(12), y + rh / 2);
+      var cx = a.x + nameW;
+      r.v.forEach(function (v, k) {
+        var txt = cell(v, k), f = fmts[k] || 'num';
+        ctx.font = font(fsz, k === 0 ? 700 : 400);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = f === 'delta' && isFinite(v) && v !== 0 ? (v > 0 ? C.acc : C.down) : C.ink;
+        if (k === barCol && isFinite(v) && colMax[k] > 0) {
+          var tw = ctx.measureText(txt).width, bw = colW[k] - tw - u(40);
+          if (bw > u(30)) {
+            ctx.fillStyle = mix(hex6(C.card) || '#FFFFFF', hex6(C.acc) || '#2A669F', 0.55);
+            dataBar(ctx, cx + u(12), y + rh / 2 - u(8), Math.max(u(3), bw * Math.abs(v) / colMax[k]), u(16), u(4), 'r'); ctx.fill();
+            ctx.fillStyle = C.ink;
+          }
+        }
+        ctx.fillText(txt, cx + colW[k] - u(12), y + rh / 2);
+        cx += colW[k];
+      });
+    });
+    ctx.strokeStyle = C.rule; ctx.lineWidth = u(1.5);
+    ctx.beginPath(); ctx.moveTo(a.x, y0 + tableH); ctx.lineTo(a.x + a.w, y0 + tableH); ctx.stroke();
+  }
+
+  /* ===== ⑯ 雷达图：几项指标一起给一两个对象打分。各项要在同一个尺度上（比如 0–100 分） ===== */
+  function radar(ctx, d, opt) {
+    var a = frame(ctx, opt);
+    var sr = seriesRows(d, 3, 8), axes = sr.rows.filter(function (r) { return r.v.some(isFinite); });
+    if (axes.length < 3) return empty(ctx, a, opt);
+    var n = axes.length, names = sr.names;
+    var allV = []; axes.forEach(function (r) { r.v.forEach(function (v) { if (isFinite(v)) allV.push(v); }); });
+    var mx = +d.max > 0 ? +d.max : ticks(0, Math.max.apply(null, allV), 4).pop();
+    var hasLegend = names.length > 1, legendH = hasLegend ? u(56) : 0;
+    ctx.font = font(26, 700);
+    var labW = Math.max.apply(null, axes.map(function (r) { return ctx.measureText(r.name).width; }));
+    var R = Math.max(u(60), Math.min((a.w - labW * 2 - u(60)) / 2, (a.h - legendH - u(110)) / 2));
+    var cx = a.x + a.w / 2, cy = a.y + legendH + (a.h - legendH) / 2;
+    var ang = function (i) { return -Math.PI / 2 + i * 2 * Math.PI / n; };
+    var P = function (i, v) { var k = Math.max(0, Math.min(1, v / mx)); return [cx + Math.cos(ang(i)) * R * k, cy + Math.sin(ang(i)) * R * k]; };
+
+    // 网格：4 圈，最外圈写满分
+    for (var g = 1; g <= 4; g++) {
+      ctx.beginPath();
+      for (var i = 0; i <= n; i++) { var p = P(i % n, mx * g / 4); if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }
+      ctx.strokeStyle = g === 4 ? C.ink2 : C.rule; ctx.lineWidth = u(g === 4 ? 2 : 1.5); ctx.stroke();
+    }
+    ctx.font = font(20, 400);
+    ctx.fillStyle = C.ink2;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    DEC = null;
+    [2, 4].forEach(function (g) { var p = P(0, mx * g / 4); ctx.fillText(short(mx * g / 4, mx), p[0] - u(12), p[1] + u(4)); });
+    DEC = decOf(axes.map(function (r) { return r.v[0]; }));
+    axes.forEach(function (r, i) {
+      var p = P(i, mx);
+      ctx.strokeStyle = C.rule; ctx.lineWidth = u(1.5);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p[0], p[1]); ctx.stroke();
+      var c = Math.cos(ang(i)), sn = Math.sin(ang(i)), lx = cx + c * (R + u(22)), ly = cy + sn * (R + u(22));
+      ctx.font = font(26, 700);
+      ctx.fillStyle = C.ink;
+      ctx.textAlign = Math.abs(c) < 0.2 ? 'center' : c > 0 ? 'left' : 'right';
+      ctx.textBaseline = Math.abs(sn) < 0.2 ? 'middle' : sn > 0 ? 'top' : 'bottom';
+      ctx.fillText(r.name, lx, ly);
+      if (names.length === 1 && isFinite(r.v[0])) {
+        ctx.font = font(22, 400);
+        ctx.fillStyle = C.ink2;
+        ctx.fillText(fmt(r.v[0]) + (d.unit || ''), lx, ly + (ctx.textBaseline === 'bottom' ? -u(30) : u(30)));
+      }
+    });
+
+    // 每个对象一个多边形：浅填充 + 描边 + 点
+    names.forEach(function (_, k) {
+      var col = C.cats[k % C.cats.length];
+      ctx.beginPath();
+      axes.forEach(function (r, i) { var p = P(i, isFinite(r.v[k]) ? r.v[k] : 0); if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); });
+      ctx.closePath();
+      ctx.globalAlpha = 0.16; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = col; ctx.lineWidth = u(4); ctx.lineJoin = 'round'; ctx.stroke();
+      axes.forEach(function (r, i) {
+        if (!isFinite(r.v[k])) return;
+        var p = P(i, r.v[k]);
+        ctx.beginPath(); ctx.arc(p[0], p[1], u(7), 0, Math.PI * 2);
+        ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = u(2); ctx.strokeStyle = C.card; ctx.stroke();
+        addHit(ctx, { cx: p[0], cy: p[1], r: u(18) }, r.name, names.map(function (nm, j) { return nm + '  ' + tv(r.v[j], d.unit); }));
+      });
+    });
+    if (hasLegend) legend(ctx, names.map(function (nm, k) { return { label: nm, color: C.cats[k % C.cats.length] }; }), a.x, a.y + u(20));
+  }
+
+  // ⑫ 图片卡：每项一张卡片，上面是图片，下面是名称、主数值、副数值和占比条（和第 1 名比），按主数值排名，前 3 名用强调色。
+  // 图片卡片。图片只认 data:image/...;base64：不联网，下载 PNG 也不会因为跨域失败。
+  // 图片是异步加载的：先画占位，图到了再把这张图整个重画一遍
+  var IMGS = {};
+  function imageOf(src, done) {
+    var e = IMGS[src];
+    if (!e) {
+      e = IMGS[src] = { img: new Image(), ok: false, bad: false, waits: [] };
+      e.img.onload = function () { e.ok = true; e.waits.splice(0).forEach(function (f) { f(); }); };
+      e.img.onerror = function () { e.bad = true; e.waits.splice(0).forEach(function (f) { f(); }); };
+      e.img.src = src;
+    }
+    if (!e.ok && !e.bad) e.waits.push(done);
+    return e.ok ? e.img : null;
+  }
+  function fitText(ctx, str, w) {
+    str = String(str);
+    if (ctx.measureText(str).width <= w) return str;
+    while (str.length > 1 && ctx.measureText(str + '…').width > w) str = str.slice(0, -1);
+    return str + '…';
+  }
+  function imageCards(ctx, d, opt) {
+    var a = frame(ctx, opt);
+    var items = (d.rows || []).map(function (r) {
+      var src = typeof r.img === 'string' && /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(r.img.trim()) ? r.img.trim() : '';
+      return { name: r.name == null ? '' : String(r.name), sub: r.sub == null ? '' : String(r.sub), a: num(r.a), b: num(r.b), src: src };
+    }).filter(function (x) { return x.name || isFinite(x.a); }).slice(0, 24);
+    if (!items.length) return empty(ctx, a, opt);
+    var ranked = items.filter(function (x) { return isFinite(x.a); }).sort(function (x, y) { return y.a - x.a; });
+    ranked.forEach(function (x, k) { x.rank = k + 1; });
+    if (d.sort !== false) items.sort(function (x, y) { return (x.rank || 1e9) - (y.rank || 1e9); });
+    var top = ranked.length ? ranked[0].a : 0, big = ranked.length ? Math.max(Math.abs(ranked[0].a), Math.abs(ranked[ranked.length - 1].a)) : 0;
+    var hasSub = items.some(function (x) { return x.sub; }), hasB = items.some(function (x) { return isFinite(x.b); });
+    var decA = decOf(items.map(function (x) { return x.a; }), shortDiv(big)), decB = decOf(items.map(function (x) { return x.b; }));
+    var ratio = +d.imageRatio > 0 ? +d.imageRatio : 1, hot = d.topN == null ? 3 : +d.topN;
+
+    // 每行几张：挨个试，取卡片最大的那种；字号跟卡片宽度走
+    var n = items.length, gap = u(20);
+    var fsOf = function (cw) { return Math.max(u(15), Math.min(u(30), cw * 0.1)); };
+    var textH = function (fs) { return fs * (0.9 + 1.45 + (hasSub ? 1.25 : 0) + 1.9 + (hasB ? 1.3 : 0) + 1.1); };
+    var best = null;
+    for (var cols = 1; cols <= n; cols++) {
+      var rows = Math.ceil(n / cols), cw = (a.w - gap * (cols - 1)) / cols;
+      for (var it = 0; it < 6; it++) {
+        var need = rows * (cw * ratio + textH(fsOf(cw))) + gap * (rows - 1);
+        if (need <= a.h) break;
+        cw *= (a.h - gap * (rows - 1)) / (need - gap * (rows - 1)) * 0.995;
+      }
+      if (!best || cw > best.cw + 0.5) best = { cols: cols, rows: rows, cw: cw };
+    }
+    var cw = best.cw, fs = fsOf(cw), ih = cw * ratio, ch = ih + textH(fs);
+    var gw = best.cols * cw + (best.cols - 1) * gap, gh = best.rows * ch + (best.rows - 1) * gap;
+    var gx = a.x + (a.w - gw) / 2, gy = a.y + (a.h - gh) / 2, rad = Math.min(u(18), cw * 0.07);
+    var track = mix(hex6(C.card) || '#FFFFFF', hex6(C.ink) || '#2D2A26', 0.08);
+    var badge = mix(hex6(C.card) || '#FFFFFF', hex6(C.ink) || '#2D2A26', 0.7);
+
+    var key = opt.panel ? opt.panel.x + ',' + opt.panel.y : 'main', cv = ctx.canvas, waiting = false;
+    cv.__imageCards = cv.__imageCards || {};
+    var tok = cv.__imageCards[key] = (cv.__imageCards[key] || 0) + 1;
+    var redraw = function () {
+      if (cv.__imageCards[key] !== tok || waiting) return;
+      waiting = true;
+      setTimeout(function () {
+        if (cv.__imageCards[key] !== tok) return;
+        // 重画前去掉这张图上次记的悬停区域（看板里只去掉这一格的）
+        var pn = opt.panel;
+        cv.__hits = pn ? (cv.__hits || []).filter(function (h) { var q = h.s; return !(q.x >= pn.x && q.x <= pn.x + pn.w && q.y >= pn.y && q.y <= pn.y + pn.h); }) : [];
+        imageCards(ctx, d, opt);
+      }, 0);
+    };
+
+    items.forEach(function (x, i) {
+      var cx = gx + (i % best.cols) * (cw + gap), cy = gy + Math.floor(i / best.cols) * (ch + gap);
+      ctx.save();
+      ctx.shadowColor = C.shadow;
+      ctx.shadowBlur = u(16);
+      ctx.shadowOffsetY = u(4);
+      ctx.fillStyle = C.card;
+      rr(ctx, cx, cy, cw, ch, rad); ctx.fill();
+      ctx.restore();
+      addHit(ctx, { x: cx, y: cy, w: cw, h: ch }, x.name, [(x.rank ? '#' + x.rank + '  ' : '') + tv(x.a, d.unit)].concat(isFinite(x.b) ? [(d.labelB ? d.labelB + '  ' : '') + (d.bPercent ? pct(x.b, true) : fmt(x.b))] : []));
+
+      // 图片：铺满裁切，只露出卡片上半截
+      ctx.save();
+      rr(ctx, cx, cy, cw, ch, rad); ctx.clip();
+      ctx.fillStyle = track;
+      ctx.fillRect(cx, cy, cw, ih);
+      var img = x.src ? imageOf(x.src, redraw) : null;
+      if (img) {
+        var iw = img.naturalWidth || img.width, hh = img.naturalHeight || img.height;
+        var k = Math.max(cw / iw, ih / hh), sw = cw / k, sh = ih / k;
+        ctx.drawImage(img, (iw - sw) / 2, (hh - sh) / 2, sw, sh, cx, cy, cw, ih);
+      } else if (!x.src || (IMGS[x.src] && IMGS[x.src].bad)) {
+        ctx.fillStyle = C.ink2;
+        ctx.font = font(fs / s * 0.9, 400);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(T.noimg, cx + cw / 2, cy + ih / 2);
+      }
+      ctx.restore();
+
+      var pad = fs * 0.75;
+      if (x.rank) {
+        ctx.font = font(fs / s * 0.9, 700);
+        var label = String(x.rank), bw = Math.max(fs * 1.5, ctx.measureText(label).width + fs * 0.9), bh = fs * 1.4;
+        var isHot = x.rank <= hot;
+        ctx.fillStyle = isHot ? C.acc : badge;
+        rr(ctx, cx + pad, cy + pad, bw, bh, bh / 2); ctx.fill();
+        ctx.fillStyle = isHot ? onColor(C.acc) : C.card;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, cx + pad + bw / 2, cy + pad + bh / 2 + fs * 0.03);
+      }
+
+      var tx = cx + pad, tw = cw - pad * 2, ty = cy + ih + fs * 0.9;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = C.ink;
+      ctx.font = font(fs / s * 1.12, 700);
+      ctx.fillText(fitText(ctx, x.name, tw), tx, ty);
+      ty += fs * 1.45;
+      if (hasSub) {
+        ctx.fillStyle = C.ink2;
+        ctx.font = font(fs / s * 0.9, 400);
+        ctx.fillText(fitText(ctx, x.sub, tw), tx, ty);
+        ty += fs * 1.25;
+      }
+      if (isFinite(x.a)) {
+        ctx.fillStyle = C.acc;
+        ctx.font = font(fs / s * 1.45, 700);
+        DEC = decA;
+        ctx.fillText(fitText(ctx, short(x.a, big) + (d.unit || ''), tw), tx, ty);
+      }
+      ty += fs * 1.9;
+      if (hasB && isFinite(x.b)) {
+        ctx.fillStyle = C.ink2;
+        ctx.font = font(fs / s * 0.9, 400);
+        DEC = decB;
+        var bv = d.bPercent ? pct(x.b, true) : fmt(x.b);
+        ctx.fillText(fitText(ctx, (d.labelB ? d.labelB + ' ' : '') + bv, tw), tx, ty);
+      }
+      if (hasB) ty += fs * 1.3;
+      if (isFinite(x.a) && top > 0) {
+        var bh2 = Math.max(2, fs * 0.22);
+        ctx.fillStyle = track;
+        rr(ctx, tx, ty, tw, bh2, bh2 / 2); ctx.fill();
+        ctx.fillStyle = C.acc;
+        rr(ctx, tx, ty, Math.max(bh2, tw * Math.max(0, Math.min(1, x.a / top))), bh2, bh2 / 2); ctx.fill();
+      }
+    });
+  }
+
   function empty(ctx, a, opt) {
     ctx.fillStyle = C.ink2;
     ctx.font = font(34, 400);
@@ -1639,10 +2064,16 @@ var DOC = {};
   // 解析后的配色（预设名或自定义对象都行），给网页的 CSS 用
   function palette(opt) { useTheme(opt || {}); return C; }
 
-  var API = { dumbbell: dumbbell, waffle: waffle, bullet: bullet, calendar: calendar,
+  var API = { dumbbell: dumbbell, waffle: waffle, bullet: bullet, calendar: calendar, calendarMonths: calendarMonths, imageCards: imageCards, tileMap: tileMap, scatter: scatter, table: table, radar: radar,
     bar: bar, column: column, line: line, donut: donut, stacked: stacked, waterfall: waterfall, kpi: kpi,
     dashboard: dashboard, dashboardHeight: dashboardHeight, palette: palette,
     num: num, THEMES: THEMES, parseDate: parseDate, dateKey: dateKey };
+  // 每次画整张图前清空悬停记录（看板里的格子不清，整页一起记）
+  Object.keys(API).forEach(function (k) {
+    var f = API[k];
+    if (typeof f !== 'function' || k === 'num' || k === 'parseDate' || k === 'dateKey' || k === 'dashboardHeight' || k === 'palette') return;
+    API[k] = function (ctx, d, opt) { DEC = null; if (ctx && ctx.canvas && !(opt && opt.panel)) ctx.canvas.__hits = []; return f(ctx, d, opt); };
+  });
   window.Charts = API;
 })();
 /* ===== CHARTS_JS END ===== */
@@ -1691,11 +2122,60 @@ var DOC = {};
     var item = { c: c, cv: cv, bare: bare };
     drawn.push(item);
     draw(item);
+    hover(cv);
     return cv;
   }
-  // canvas height for chart-only (bare) drawing: shorter for KPI cards, taller for calendars
+  // hover tooltip: shows the name and values of the mark under the mouse (from canvas.__hits)
+  var tip = null;
+  function hitAt(cv, ev) {
+    var r = cv.getBoundingClientRect();
+    var x = (ev.clientX - r.left) * cv.width / r.width, y = (ev.clientY - r.top) * cv.height / r.height, hs = cv.__hits || [];
+    for (var i = hs.length - 1; i >= 0; i--) {
+      var s = hs[i].s;
+      if (s.w !== undefined) { if (x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h) return hs[i]; }
+      else if (s.r0 !== undefined) {
+        var dx = x - s.cx, dy = y - s.cy, dd = Math.sqrt(dx * dx + dy * dy), an = Math.atan2(dy, dx);
+        while (an < s.a0) an += Math.PI * 2;
+        if (dd >= s.r0 && dd <= s.r1 && an <= s.a1) return hs[i];
+      } else if ((x - s.cx) * (x - s.cx) + (y - s.cy) * (y - s.cy) <= s.r * s.r) return hs[i];
+    }
+    return null;
+  }
+  function hover(cv) {
+    if (!tip) { tip = el('div', 'xc-tip'); document.body.appendChild(tip); }
+    var show = function (ev) {
+      var h = hitAt(cv, ev);
+      if (!h) { tip.style.display = 'none'; cv.style.cursor = ''; return; }
+      tip.textContent = '';
+      tip.appendChild(el('b', '', h.t));
+      h.l.forEach(function (line) { tip.appendChild(el('div', '', line)); });
+      tip.style.display = 'block';
+      cv.style.cursor = 'default';
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - tw - 8) + 'px';
+      tip.style.top = (ev.clientY + 16 + th > window.innerHeight ? ev.clientY - th - 12 : ev.clientY + 16) + 'px';
+    };
+    cv.addEventListener('mousemove', show);
+    cv.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+  }
+  // canvas height for chart-only (bare) drawing: shorter for KPI cards, a one-row calendar shorter still
   function bareSize(c, w) {
-    return [w, Math.round(w * (c.kind === 'kpi' ? 0.36 : c.kind === 'calendar' ? 0.62 : 0.5625))];
+    return [w, Math.round(w * (c.kind === 'kpi' ? 0.36 : c.kind === 'calendar' ? 0.26 : c.kind === 'calendarMonths' ? 0.62 : 0.5625))];
+  }
+  // report charts: flatter than 16:9 so one fits on a wide screen; row-based charts (bar, dumbbell, bullet, table, image cards) grow with the number of rows
+  function reportSize(c, w, layout) {
+    var n = (c.rows || []).length, k = c.kind, r = layout === 'full' || !layout ? 0.45 : 0.62;
+    var multi = (c.series || []).length > 1 && !c.stack;
+    if (k === 'kpi') r = n > 4 ? 0.36 : 0.22;
+    else if (k === 'calendar') r = 0.26;
+    else if (k === 'calendarMonths') r = 0.62;
+    else if (k === 'tileMap') r = 0.6;
+    else if (k === 'imageCards') r = 0.32 * Math.ceil(n / 5);
+    else if (k === 'table') r = 0.1 + (layout === 'full' || !layout ? 0.034 : 0.05) * n;
+    else if (k === 'dumbbell' || k === 'bullet' || (k === 'bar' && !c.stack)) r = 0.12 + 0.048 * n * (k === 'bar' && multi ? 1.6 : 1);
+    if (layout === 'side' || layout === 'half') r = r * (r === 0.62 ? 1 : 1.3);
+    var hi = layout === 'side' || layout === 'half' ? 1.05 : 0.9;
+    return [w, Math.round(w * Math.max(k === 'kpi' ? 0.2 : 0.26, Math.min(hi, Math.max(k === 'kpi' || k === 'calendar' ? 0 : 0.4, r))))];
   }
   function download(cv, name) {
     var a = document.createElement('a');
@@ -1730,7 +2210,7 @@ var DOC = {};
   // ---------- charts: download each chart ----------
   function gallery() {
     var wrap = el('main', 'gallery');
-    wrap.appendChild(el('h1', '', DOC.title || 'excel-charts'));
+    wrap.appendChild(el('h1', '', DOC.title || 'data-report'));
     wrap.appendChild(el('p', 'lead', UI.lead));
     wrap.appendChild(themeBar(true));
     (DOC.charts || []).forEach(function (c, i) {
@@ -1740,7 +2220,7 @@ var DOC = {};
       var pair = el('div', 'pair');
       var sizes = c.kind === 'dashboard'
         ? [{ key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
-           { key: 'long', w: 1080, h: Charts.dashboardHeight(c, 1080), cls: 'c34', label: UI.dlong }]
+           { key: 'long', w: 1080, h: Charts.dashboardHeight(c, 1080, c.sign || DOC.sign), cls: 'c34', label: UI.dlong }]
         : [{ key: '3x4', w: 1080, h: 1440, cls: 'c34', label: UI.d34 },
            { key: '16x9', w: 1920, h: 1080, cls: 'c169', label: UI.d169 },
            { key: 'chart', bare: true, cls: 'cbare', label: UI.dbare }];
@@ -1778,21 +2258,44 @@ var DOC = {};
       f.appendChild(list('ol', '', DOC.summary));
       wrap.appendChild(f);
     }
-    (DOC.sections || []).forEach(function (c, i) {
-      var sec = el('section', 'sec');
+    // section layout: wide charts take the full row; neighbouring sections with width: "half" share a row (a lone one takes the full row); others put chart and points side by side
+    var secs = DOC.sections || [], layouts = [], runStart = -1;
+    secs.forEach(function (c, i) {
+      var hasChart = Charts[c.kind] && c.kind !== 'palette';
+      var hasText = !!(c.text || (c.points && c.points.length));
+      var wideKind = ['kpi', 'calendar', 'dashboard', 'table', 'imageCards'].indexOf(c.kind) >= 0;
+      layouts[i] = !hasChart || wideKind || c.width === 'full' || !hasText ? 'full' : c.width === 'half' ? 'half' : 'side';
+    });
+    for (var i = 0; i <= secs.length; i++) {
+      if (i < secs.length && layouts[i] === 'half') { if (runStart < 0) runStart = i; continue; }
+      if (runStart >= 0 && (i - runStart) % 2 === 1) layouts[i - 1] = 'side';
+      runStart = -1;
+    }
+    var grid = el('div', 'secs');
+    secs.forEach(function (c, i) {
+      var layout = layouts[i], sec = el('section', 'sec ' + layout);
       sec.appendChild(el('h2', '', c.title || ''));
       if (c.subtitle) sec.appendChild(el('div', 'unit', c.subtitle));
+      var body = el('div', 'sec-body');
       if (Charts[c.kind] && c.kind !== 'palette') {
         var dash = c.kind === 'dashboard';
-        var wh = dash ? [1920, 1080] : bareSize(c, 1600);
+        var wh = dash ? [1920, 1080] : reportSize(c, layout === 'full' ? 2000 : 1300, layout);
         var cv = canvas(c, wh[0], wh[1], !dash);
         cv.id = 'chart-' + (i + 1);
-        sec.appendChild(cv);
+        var box = el('div', 'sec-chart');
+        box.appendChild(cv);
+        body.appendChild(box);
       }
-      if (c.text) sec.appendChild(el('p', '', c.text));
-      if (c.points && c.points.length) sec.appendChild(list('ul', '', c.points));
-      wrap.appendChild(sec);
+      if (c.text || (c.points && c.points.length)) {
+        var tx = el('div', 'sec-text');
+        if (c.text) tx.appendChild(el('p', '', c.text));
+        if (c.points && c.points.length) tx.appendChild(list('ul', '', c.points));
+        body.appendChild(tx);
+      }
+      sec.appendChild(body);
+      grid.appendChild(sec);
     });
+    wrap.appendChild(grid);
     if (DOC.notes && DOC.notes.length) {
       var n = el('section', 'notes');
       n.appendChild(el('h2', '', UI.notes));
@@ -1901,4 +2404,3 @@ var DOC = {};
 </script>
 </body>
 </html>
-```
