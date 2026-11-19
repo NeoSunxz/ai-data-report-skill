@@ -23,6 +23,8 @@ An **agent skill** for Claude Code and other AI assistants. Tell it what you wan
 - **Built for people new to data**: the AI first asks who it's for, which numbers matter and what to compare with; cleans messy spreadsheets (several sheets, merged cells, dates stored as text, "$3,200" as text) and tells you what it changed.
 - **No made-up numbers**: every value comes from your data, and the AI explains how it summarized.
 - **Any data source**: Excel, CSV, a pasted table, the results of a database or Power BI query (for example through an MCP server), or numbers in the chat.
+- **Checkable and readable**: every report and slide chart has a collapsed "Show data table" with the numbers behind it, and each chart carries a one-line description for screen readers.
+- **Tells you what it changed**: values it couldn't read, dates it couldn't parse and rows it left out are listed in a data notes box on the page — nothing is dropped silently.
 - **English and Chinese** chart text.
 
 ![All chart types](examples/all-charts.png)
@@ -67,9 +69,10 @@ To see it first, open the live examples: [charts & dashboard](https://neosunxz.g
 
 ## Limits
 
-- In the browser, hover over a chart to see exact values; there is no clicking or filtering. Regenerate when the data changes.
+- In the browser, hover over a chart — or tap it on a phone — to see exact values; there is no clicking into a segment or filtering. Regenerate when the data changes.
 - Built-in slides are deliberately plain (headline, chart, a few points). For animated, highly designed decks, pair it with a presentation skill.
-- Each chart has a row limit (for example 15 bars, 4 lines), so large data is summarized first.
+- Each chart has a row limit (for example 15 bars, 4 lines, 24 columns). Rows over the limit are left out, never averaged in silently, and the chart says how many. Columns and lines keep the newest rows.
+- Values with a currency symbol or unit (`"$3,200"`, `"12k"`, `"15%"`) are rejected rather than guessed, and the page lists them in a data notes box. Dates must be year-first: `2025-03-05`, `2025/3/5` or `20250305` (Excel serial numbers work too). `3/5/2025` is ambiguous and is not guessed.
 - Text uses the fonts on your computer, so letter shapes differ slightly between machines.
 - The page runs only in your browser and never uploads your data.
 

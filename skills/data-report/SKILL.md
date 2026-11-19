@@ -40,6 +40,8 @@ If the user says "up to you" or "I don't know", use the default **business revie
    - **Windows encoding:** read CSV files with `encoding="utf-8-sig"` and fall back to `"gbk"`; write results to a JSON file instead of printing non-ASCII text to the console (or set `PYTHONIOENCODING=utf-8` first).
    - If you can't run code, say so, keep the summaries small, and show how each total was worked out in the section 7 table.
    - **Name metrics by how they're calculated.** Sales ÷ cups (or units) is "average price per cup/unit", not "average ticket" or "average order value", which need an order count; a repeat rate needs customer or member data; margin needs costs. If the data doesn't have it, don't use the term.
+   - **Clean dates and units in the script, not in `DOC`.** The page reads `2025-01-03` / `2025/1/3` / `20250103` / Excel serial numbers, but not `3/5/2025` (month or day first — ambiguous, never guessed). Values must be plain numbers: `"$3,200"`, `"12k"`, `"15%"` are rejected, and the page lists them in its data notes instead of drawing a wrong chart.
+   - **Read the page's data notes after generating.** The page collects what it had to change — values it couldn't read, dates it couldn't parse, rows it left out, categories merged into "Other" — and shows them in a "Data notes" box at the end (also available to your script as `Charts.takeWarnings()` after rendering). Reconcile them with your own list and mention them in your final message.
 3. When you need to summarize (sum by month, sum by store, work out shares), first tell the user in one sentence how, for example "I added up each store's daily sales for 2025".
 4. Don't draw total or subtotal rows as a category.
 
@@ -93,6 +95,7 @@ A few rules:
 - The two calendars take the same data: the calendar heatmap shows **patterns across the year**; the month calendar is for **finding specific days**. Use both if both questions matter.
 - Use image cards only when the pictures help (telling which product or store it is). Without pictures, a bar chart is clearer.
 - **Reports and decks get at most 6 charts by default** (a row of KPI cards counts as one). Add more only if the user asks.
+- **Rows over the limit are dropped, not merged, and the chart says so.** Bars keep the 15 largest, columns and lines keep the newest 24 / 60, dumbbells and bullets keep the top 12, tables fit what the canvas holds. If the data is much bigger than that, summarize it in your script and tell the user how (section 1) rather than handing over a chart that silently shows a slice.
 - **Each set of numbers goes in one chart.** Don't show the same values again as a grouped bar, a dumbbell and a table; pick the one that answers the question best. A KPI card with the overall total is fine.
 - A dumbbell chart works when each item's change is about as large as the gaps between items. When the changes are small next to those gaps (stores between 24 and 47 that each moved 1–3), the dots sit on top of each other; chart the change itself instead (`bar` of the % change).
 - A scatter plot shows that two numbers move together, never that one causes the other (section 7). With fewer than 8 points, check whether a bar chart is clearer.
@@ -125,6 +128,8 @@ If the request fits none of these, build the plan from the table above: one ques
 | One or a few chart images | `charts` | **PNG files**: export them from the page yourself (section 5) and hand over the files. The page stays next to them as the tool for other sizes and colors |
 | A dashboard image | `charts` with one `dashboard` chart | One page with KPI cards and 2–6 charts, as 16:9 or a long phone image |
 | A report to read or send | `report` | One long web page: title, key findings, one section per chart with its explanation, and notes on the data. Prints neatly to A4 PDF |
+
+Every report and slide chart also gets a collapsed **"Show data table"** with the numbers behind it, and every canvas carries an `aria-label` summary. So the reader can check the figures after the report is sent, and screen readers have something to read. Reports also end with a **data notes** box listing anything the page had to change (values it could not read, dates it could not parse, rows left out). Mention those notes in your final message.
 | A slide deck, no template of their own | `slides` | An HTML deck (16:9, arrow keys to move, F for full screen, prints one slide per PDF page) in the 3 built-in themes |
 | A slide deck in their own template or another slide skill | see section 6 | The storyline and charts in that deck's colors; the deck's look stays theirs |
 
@@ -184,9 +189,9 @@ Before filling in `DOC`, write the storyline as a list: one line per section, ea
 
 **Fill in values at full precision** (for example `45.0839`); don't round them first. The page shows one decimal place by itself. The change on KPI cards and the % change at the right of a dumbbell chart are calculated by the page from `a` and `b`: if `a` and `b` were rounded, those percentages won't match the text or the other charts.
 
-Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `rows`. Optional: `unit` (a short unit after each value, such as `"k"` or `"%"`; longer units go in the subtitle) and `file` (download file name in `charts` mode). Keep category names short (about 12 characters or fewer): on a crowded axis, long names get small text or only every other one is shown. Values can be numbers or numeric strings (`33.6`, `"33.6"`, `"1,280"`). In `charts` mode the title is drawn on the image: about 35 characters fit, longer titles are set smaller, then cut off.
+Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `rows`. Optional: `unit` (a short unit after each value, such as `"k"` or `"%"`; longer units go in the subtitle) and `file` (download file name in `charts` mode). Keep category names short (about 12 characters or fewer): on a crowded axis, long names get small text or only every other one is shown. Values must be **plain numbers** (`33.6`, `"33.6"`, `"1,280"`, `"1.2e3"`); a value with a currency symbol or unit (`"$3,200"`, `"12k"`, `"15%"`) is **not** read — it is skipped and reported in the page's data notes. Convert them in your script first. In `charts` mode the title is drawn on the image: about 35 characters fit, longer titles are set smaller, then cut off.
 
-**Bar chart `bar`**: `rows: [{name, a}]`. Sorted from largest to smallest automatically, up to 15 rows. `highlight: "Riverside"` highlights only that row and greys out the rest.
+**Bar chart `bar`**: `rows: [{name, a}]`. Sorted from largest to smallest automatically, up to 15 rows (the rest are left out and noted). `highlight: "Riverside"` highlights only that row and greys out the rest.
 
 **More than one number per row** (bar and column alike): add `series` with the names and write each row as `{name, v: [one value per series]}`. Then `stack` picks the look:
 - not set: **grouped**, bars side by side (up to 4 series, 12 rows). Bars are sorted by the last series, usually the latest.
@@ -202,13 +207,13 @@ Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `ro
  "rows": [{"name": "Main St", "a": 33.6}, {"name": "Riverside", "a": 45.7}, {"name": "Tech Park", "a": 46.9}]}
 ```
 
-**Column chart `column`**: `rows: [{name, a}]`. Drawn in the order given, up to 24 columns; negative values are fine. `highlight` works the same way.
+**Column chart `column`**: `rows: [{name, a}]`. Drawn in the order given, up to 24 columns; negative values are fine. **When there are more rows than fit, the last 24 are kept** (the newest in time-series data) and the chart notes how many were left out. `highlight` works the same way.
 ```json
 {"kind": "column", "title": "Monthly sales in 2025", "subtitle": "$ thousands", "highlight": "Dec",
  "rows": [{"name": "Jan", "a": 15.2}, {"name": "Feb", "a": 12.1}, {"name": "Mar", "a": 16.8}]}
 ```
 
-**Line chart `line`**: `series` holds the line names (up to 4); `rows: [{name, v: [one value per line]}]`. Drawn in the order given, up to 60 points. Write `null` for a missing value and the line breaks there.
+**Line chart `line`**: `series` holds the line names (up to 4); `rows: [{name, v: [one value per line]}]`. Drawn in the order given, up to 60 points; **the last 60 are kept when there are more** (the newest in time-series data). Write `null` for a missing value and the line breaks there.
 ```json
 {"kind": "line", "title": "Delivery is catching up with dine-in", "subtitle": "Cups per month, thousands", "series": ["Dine-in", "Delivery"],
  "rows": [{"name": "Jan", "v": [21.4, 9.8]}, {"name": "Feb", "v": [17.9, 9.1]}, {"name": "Mar", "v": [22.6, 11.5]}]}
@@ -226,7 +231,7 @@ Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `ro
  "rows": [{"name": "Q1", "v": [28.4, 9.6, 6.1]}, {"name": "Q2", "v": [31.2, 13.8, 7.8]}]}
 ```
 
-**Waterfall chart `waterfall`**: the first row is the starting value (such as last year's profit); each row after it is an increase (positive) or decrease (negative), up to 14 rows. The last column is calculated automatically and named with `endLabel`. **Check the calculated end value against the end value in the user's data. If they don't match, something is missing: tell the user first.**
+**Waterfall chart `waterfall`**: the first row is the starting value (such as last year's profit); each row after it is an increase (positive) or decrease (negative), up to 14 rows. **The first row is always kept; when there are more than 14, the latest changes are kept and the rest noted.** The last column is calculated automatically and named with `endLabel`. **Check the calculated end value against the end value in the user's data. If they don't match, something is missing: tell the user first.**
 ```json
 {"kind": "waterfall", "title": "Why profit went up this year", "subtitle": "$ thousands", "endLabel": "2025 profit",
  "rows": [{"name": "2024 profit", "a": 28.5}, {"name": "Sales up", "a": 12.6}, {"name": "Beans", "a": -4.8}]}
@@ -238,7 +243,7 @@ Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `ro
  "rows": [{"name": "Sales ($)", "a": 215.3, "b": 204.6, "unit": "k"}, {"name": "Repeat rate", "a": 38.5, "b": 35.1, "unit": "%"}]}
 ```
 
-**Dumbbell chart `dumbbell`**: `rows: [{name, a: start, b: end}]`; `labelA` / `labelB` name the two points in time. Sorted by end value, largest first, with the percentage change on the right. Works best with up to 8 rows.
+**Dumbbell chart `dumbbell`**: `rows: [{name, a: start, b: end}]`; `labelA` / `labelB` name the two points in time. Sorted by end value, largest first, with the percentage change on the right. Up to 12 rows (the rest are left out and noted); works best with up to 8.
 ```json
 {"kind": "dumbbell", "title": "Sales by store: 2024 vs 2025", "subtitle": "$ thousands", "labelA": "2024", "labelB": "2025",
  "rows": [{"name": "Main St", "a": 31.8, "b": 33.6}, {"name": "Riverside", "a": 42.9, "b": 45.7}]}
@@ -250,13 +255,13 @@ Every chart has `kind` (from section 2), `title`, an optional `subtitle` and `ro
  "rows": [{"name": "Coffee", "a": 161.2}, {"name": "Tea", "a": 26.9}]}
 ```
 
-**Bullet chart `bullet`**: `rows: [{name, a: actual, b: target}]`. Sorted by how much of the target was reached; bars below target are red. Works best with up to 8 rows.
+**Bullet chart `bullet`**: `rows: [{name, a: actual, b: target}]`. Sorted by how much of the target was reached; bars below target are red. Up to 12 rows (the rest are left out and noted); works best with up to 8.
 ```json
 {"kind": "bullet", "title": "2025 sales vs target by store", "subtitle": "$ thousands",
  "rows": [{"name": "Main St", "a": 33.6, "b": 32}, {"name": "Tech Park", "a": 46.9, "b": 50}]}
 ```
 
-**Calendar heatmap `calendar`**: `rows: [{name: date, a: value}]`, one row per day. Write dates as `2025-01-03` (year first); Excel date serial numbers also work. Only the year with the most data is drawn; several rows for the same day are added up.
+**Calendar heatmap `calendar`**: `rows: [{name: date, a: value}]`, one row per day. Write dates as `2025-01-03` (year first) or `20250103`; Excel date serial numbers also work. **Month/day/year is not accepted** (`3/5/2025` is ambiguous and is not guessed): convert it in your script. Only the year with the most data is drawn; several rows for the same day are added up.
 ```json
 {"kind": "calendar", "title": "Daily sales in 2025", "subtitle": "Darker means a busier day", "unit": "",
  "rows": [{"name": "2025-01-01", "a": 5120}, {"name": "2025-01-02", "a": 4380}]}
@@ -420,7 +425,7 @@ Before delivering, reread every sentence you wrote (titles, points, summaries, t
 - **Recommendations need a basis.** When the user asks for recommendations, tie each one to a finding in the report and phrase it as something to consider. No invented numbers and no predicted effects ("should lift sales 10%").
 - **Red-flag words.** Search what you wrote for: significant(ly), sharply, dramatically, because, due to, driven by, caused, will, expected, forecast, industry average, typical, trend. Recheck every hit against the rules above; keep it only if the data backs it.
 
-Give the user a table with one row per chart (for a dashboard, one per panel; for a report or deck, one per section): the headline, the question it answers, the columns used, and how they were summarized ("raw data" if not summarized). Also list anything cut or merged (rows over the limit, categories merged into "Other") and anything cleaned up in step 1.
+Give the user a table with one row per chart (for a dashboard, one per panel; for a report or deck, one per section): the headline, the question it answers, the columns used, and how they were summarized ("raw data" if not summarized). Also list anything cut or merged (rows over the limit, categories merged into "Other") and anything cleaned up in step 1 — including every entry in the page's data notes box. If the page reports values or dates it could not read, fix the script and regenerate rather than delivering a chart with missing data.
 
 End with one or two sentences on what stands out, based only on what the data shows ("December had the highest sales, $24k", "Delivery cups doubled over the year"). Don't guess at reasons.
 
@@ -431,8 +436,8 @@ Finish by offering next steps in one line. After a single chart: one specific ex
 ## 8. Limits
 
 - Text uses the fonts on the computer (or the deck's font when given), so letter shapes differ slightly between machines.
-- Each chart has a row limit (see the chart formats); anything beyond it isn't drawn. With a lot of data, summarize or filter first.
-- Hovering over a chart shows its values, but there is no clicking or filtering, and pages must be regenerated when the data changes. For a dashboard that filters and refreshes on its own, use a dedicated reporting tool.
-- Values show at most one decimal place (two for KPI values under 10), with thousands separators above 1,000.
+- Each chart has a row limit (see the chart formats); anything beyond it isn't drawn, and the chart notes how many rows were left out. With a lot of data, summarize or filter first.
+- Hovering (or tapping, on a phone) shows a chart's values; there is still no clicking into a segment and no filtering, and pages must be regenerated when the data changes. For a dashboard that filters and refreshes on its own, use a dedicated reporting tool.
+- Values show at most one decimal place, with thousands separators above 1,000. Numbers under 0.1 keep two significant digits (`0.0000123` shows as `0.000012`), so rates and small percentages are not flattened to `0`.
 - Image card pictures are stored inside the page, so many or large pictures make it big. Shrink them first (section 4).
 - Built-in slides are deliberately plain: one headline, one chart, a few points. For animated or highly designed decks, use a dedicated presentation skill and section 6.

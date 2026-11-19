@@ -27,6 +27,7 @@
   .c34 { width: 300px; } .c169 { width: 640px; max-width: 100%; }
   .cbare { width: 480px; max-width: 100%; background: repeating-conic-gradient(var(--rule) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
   .dl { margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--acc); color: #fff; font-size: 14px; cursor: pointer; }
+  .gallery .dt { max-width: 900px; }
 
   /* ---- report mode ---- */
   .report { max-width: 1200px; margin: 0 auto; padding: 40px 32px 64px; }
@@ -55,6 +56,22 @@
   .notes { font-size: 14px; color: var(--ink2); line-height: 1.6; margin-top: 32px; }
   .notes ul { padding-left: 20px; margin: 0; }
   .foot { font-size: 12px; color: var(--ink2); margin-top: 28px; }
+  /* 显示数据表：默认收起，展开后是图表背后的原始数字 */
+  .dt { margin-top: 12px; font-size: 13px; }
+  .dt summary { cursor: pointer; color: var(--acc); font-weight: 600; padding: 4px 0; }
+  .dt summary:hover { text-decoration: underline; }
+  .dtwrap { margin-top: 8px; max-height: 340px; overflow: auto; border: 1px solid var(--rule); border-radius: 8px; }
+  .dtab { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  .dtab th, .dtab td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  .dtab thead th { position: sticky; top: 0; background: var(--card); font-weight: 700; }
+  .dtab tbody th { font-weight: 500; }
+  .dtab td { text-align: right; font-variant-numeric: tabular-nums; }
+  .dtab tr:nth-child(even) td, .dtab tr:nth-child(even) th { background: rgba(0,0,0,.02); }
+  .dtmore { font-size: 12px; color: var(--ink2); margin: 6px 10px; }
+  /* 数据提醒：截断、读不懂的值 */
+  .warn { background: var(--card); border-left: 4px solid #b9553f; border-radius: 8px; padding: 12px 16px; margin: 20px 0; font-size: 13px; color: var(--ink); }
+  .warn b { display: block; margin-bottom: 6px; }
+  .warn ul { margin: 0; padding-left: 18px; line-height: 1.6; }
   @media print {
     @page { size: A4; margin: 14mm; }
     body { background: #fff; }
@@ -63,6 +80,7 @@
     .secs { display: block; }
     .secs .sec { margin: 0 0 14px; }
     .sec.side .sec-body { display: block; }
+    .dt { display: none; }
   }
 
   /* ---- slides mode: fixed 1920x1080 stage, scaled to the window ---- */
@@ -125,6 +143,35 @@ var DOC = {};
 
   var W = 1080, H = 1440, s = 1;
 
+  // 画图时顺手记下的提醒：截掉了多少行、哪些值没认出来。
+  // 不画在图上（保证 PNG 干净），网页和调用方可以用 takeWarnings() 取走。
+  var WARN = [];
+  function warn(code, info) {
+    if (WARN.length >= 40) return;
+    var w = { code: code };
+    for (var k in info) w[k] = info[k];
+    WARN.push(w);
+  }
+  function takeWarnings() { var w = WARN; WARN = []; return w; }
+
+  // 画之前扫一遍数据：认不出的数、认不出的日期。同一类只报一条，附几个例子
+  function scanDoc(kind, d) {
+    if (!d || !d.rows) return;
+    var badN = [], badD = [], isDate = kind === 'calendar' || kind === 'calendarMonths';
+    d.rows.forEach(function (r, i) {
+      if (!r) return;
+      if (isDate && r.name != null && r.name !== '' && !parseDate(r.name)) badD.push({ row: i + 1, value: String(r.name).slice(0, 24) });
+      var fs = Array.isArray(r.v) ? r.v : [r.a, r.b, r.c, r.d];
+      fs.forEach(function (v) {
+        if (v === null || v === undefined || v === '') return;
+        if (typeof v === 'number') { if (!isFinite(v)) badN.push({ row: i + 1, name: String(r.name || ''), value: String(v) }); return; }
+        if (isNaN(num(v))) badN.push({ row: i + 1, name: String(r.name || ''), value: String(v).slice(0, 24) });
+      });
+    });
+    if (badN.length) warn('badNumber', { kind: kind, count: badN.length, examples: badN.slice(0, 3) });
+    if (badD.length) warn('badDate', { kind: kind, count: badD.length, examples: badD.slice(0, 3) });
+  }
+
   // 每次画图前按 canvas 尺寸更新 W / H / s
   function setup(ctx) {
     W = ctx.canvas.width;
@@ -163,12 +210,24 @@ var DOC = {};
     zh: { start: '起点', end: '终点', other: '其他', hit: '达标', miss: '未达标', target: '目标', less: '少', more: '多',
       low: '最低 ', high: '最高 ', wd: ['一', '二', '三', '四', '五', '六', '日'], month: function (m) { return m + '月'; },
       value: '数值', total: '合计', up: '增加', down: '减少', startTotal: '起点 / 合计', flat: '— 持平', prev: '较上期',
-      empty: '填几行数据，图就出来了', noimg: '无图片', avg: '平均', noData: '灰色：没有数据', lowest: '最低 ', highest: '最高 ' },
+      empty: '填几行数据，图就出来了', noimg: '无图片', avg: '平均', noData: '灰色：没有数据', lowest: '最低 ', highest: '最高 ',
+      clip: function (how, shown, dropped) {
+        return how === 'recent' ? '只显示最近 ' + shown + ' 个，另有 ' + dropped + ' 行未显示'
+          : how === 'keepFirst' ? '只显示起点和最近 ' + (shown - 1) + ' 项，另有 ' + dropped + ' 行未显示'
+          : '另有 ' + dropped + ' 行未显示';
+      },
+      badDate: '日期格式没认出来，请转成 YYYY-MM-DD（例如 2025-03-05）' },
     en: { start: 'Start', end: 'End', other: 'Other', hit: 'On target', miss: 'Below target', target: 'Target', less: 'Less', more: 'More',
       low: 'Low ', high: 'High ', wd: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
       month: function (m) { return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]; },
       value: 'Value', total: 'Total', up: 'Increase', down: 'Decrease', startTotal: 'Start / total', flat: '— Flat', prev: 'vs previous',
-      empty: 'Add a few rows to see the chart', noimg: 'No image', avg: 'Average', noData: 'Gray: no data', lowest: 'Lowest ', highest: 'Highest ' }
+      empty: 'Add a few rows to see the chart', noimg: 'No image', avg: 'Average', noData: 'Gray: no data', lowest: 'Lowest ', highest: 'Highest ',
+      clip: function (how, shown, dropped) {
+        return how === 'recent' ? 'Last ' + shown + ' shown, ' + dropped + ' more not shown'
+          : how === 'keepFirst' ? 'Start plus last ' + (shown - 1) + ' shown, ' + dropped + ' more not shown'
+          : dropped + ' more rows not shown';
+      },
+      badDate: 'Dates not recognised. Use YYYY-MM-DD, for example 2025-03-05' }
   };
   var T = TEXT.zh;
 
@@ -238,27 +297,76 @@ var DOC = {};
 
   function font(size, weight) { return (weight || 400) + ' ' + (size * s) + 'px ' + FONT; }
 
-  function num(v) { var n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : NaN; }
+  // 只认纯数字：可以有正负号、千分位、科学计数法。带单位或货币符号的（"12k"、"$3,200"、"15%"）一律不认，
+  // 由外层记一条提醒。宁可报「第 3 行的 12k 没认出来」，也不要画出一张差 1000 倍的图。
+  function num(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : NaN;
+    if (v === null || v === undefined || v === '') return NaN;
+    var t = String(v).trim().replace(/,/g, '');
+    if (!/^[-+]?(\d+(\.\d*)?|\.\d+)(e[-+]?\d+)?$/i.test(t)) return NaN;
+    var n = parseFloat(t);
+    return isFinite(n) ? n : NaN;
+  }
 
-  // 最多一位小数，去掉多余的 0；大数加千分位
+  // 小数位：DEC 为 null 时自适应，为整数时整组统一
   // 同一组数统一小数位：DEC 为 1 时小于 1000 的数都写一位小数（6 写成 6.0，和 6.5 对齐）；为 0 时都写整数（组里有上千的数）。
+  // 很小的数（转化率、误差率）按有效数字保留更多位，否则 0.0000123 会被写成 0。
   // 每张图画数值标签前按那一组数设好；坐标轴刻度不受影响（yAxis 里会临时关掉）
   var DEC = null;
   function decOf(vs, div) {
     div = div || 1;
-    var xs = vs.map(function (v) { return Math.abs(v / div); }).filter(isFinite);
-    if (xs.some(function (x) { return x >= 1000; })) return 0;   // 有上千的数：整组都写整数（1,920 和 886，不写 885.5）
+    var xs = vs.map(function (v) { return Math.abs(v / div); }).filter(isFinite).filter(function (x) { return x > 0; });
+    if (!xs.length) return null;
+    var mx = Math.max.apply(null, xs);
+    if (mx >= 1000) return 0;                                   // 有上千的数：整组都写整数（1,920 和 886，不写 885.5）
+    if (mx < 0.1) return Math.min(6, Math.ceil(-Math.log(mx) / Math.LN10) + 2);   // 0.0456 → 4 位，0.0000123 → 6 位
     return xs.some(function (x) { return Math.round(x * 10) % 10 !== 0; }) ? 1 : null;
   }
   function shortDiv(big) {
     if (T === TEXT.en) return big >= 1e9 ? 1e9 : big >= 1e6 ? 1e6 : big >= 1e4 ? 1e3 : 1;
     return big >= 1e8 ? 1e8 : big >= 1e5 ? 1e4 : 1;
   }
+  // 自适应时的写法：小于 0.1 的数按有效数字，其余最多一位小数、去掉多余的 0
+  function fmtAdapt(v) {
+    var a = Math.abs(v);
+    if (a > 0 && a < 0.1) return String(parseFloat(v.toPrecision(2)));
+    return String(Math.round(v * 10) / 10);
+  }
   function fmt(v) {
-    var a = Math.abs(v), s = a >= 1000 || DEC === 0 ? String(Math.round(v)) : DEC === 1 ? (Math.round(v * 10) / 10).toFixed(1) : String(Math.round(v * 10) / 10);
-    var p = s.split('.');
+    var a = Math.abs(v), str;
+    var d = DEC === null || DEC === undefined ? null : DEC;
+    if (a >= 1000 || d === 0) str = String(Math.round(v));
+    else if (d === null) str = fmtAdapt(v);
+    else str = Number(v).toFixed(d);
+    var p = str.split('.');
     p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return p.join('.');
+  }
+
+  // 超出上限时保留哪些行，并记下截掉了多少
+  // how：'top' 取前面（调用方已排好序）、'recent' 保留最后几行（按时间排的数据）、'keepFirst' 保留第一行（瀑布图的起点）
+  function clipRows(rows, max, kind, how) {
+    var n = rows.length;
+    if (n <= max) return rows;
+    var out = how === 'recent' ? rows.slice(n - max)
+      : how === 'keepFirst' ? [rows[0]].concat(rows.slice(n - (max - 1)))
+      : rows.slice(0, max);
+    warn('truncated', { kind: kind, shown: out.length, dropped: n - out.length, how: how || 'top' });
+    return out;
+  }
+  // 图上注明截断了：画在图表区右下角
+  // 图上注明截断了：在图表区底下留一条窄带写说明，返回缩小后的绘图区（没有截断就原样返回）
+  function clipBand(ctx, a, shown, dropped, how) {
+    if (!dropped) return a;
+    var bandH = u(38);
+    ctx.save();
+    ctx.fillStyle = C.ink2;
+    ctx.font = font(24, 400);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(fit(ctx, T.clip(how, shown, dropped), a.w * 0.9), a.x + a.w, a.y + a.h - u(2));
+    ctx.restore();
+    return { x: a.x, y: a.y, w: a.w, h: a.h - bandH };
   }
   // 悬停提示：画图时顺手记下每个色块、点、行的位置和数，网页里鼠标移上去显示。只记不画，PNG 不受影响
   // sh：矩形 {x, y, w, h}，圆 {cx, cy, r}，扇环 {cx, cy, r0, r1, a0, a1}
@@ -355,10 +463,12 @@ var DOC = {};
   // ① 哑铃图：每行一个类别，左点起点、右点终点，按终点从大到小排
   function dumbbell(ctx, d, opt) {
     var a = frame(ctx, opt);
-    var rows = d.rows.map(function (r) { return { name: r.name, s: num(r.a), e: num(r.b) }; })
+    var all = d.rows.map(function (r) { return { name: r.name, s: num(r.a), e: num(r.b) }; })
       .filter(function (r) { return r.name && isFinite(r.s) && isFinite(r.e); })
       .sort(function (p, q) { return q.e - p.e; });
+    var rows = clipRows(all, 12, 'dumbbell', 'top');
     if (!rows.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, all.length - rows.length, 'top');
 
     var lo = Infinity, hi = -Infinity;
     rows.forEach(function (r) { lo = Math.min(lo, r.s, r.e); hi = Math.max(hi, r.s, r.e); });
@@ -423,6 +533,7 @@ var DOC = {};
     if (rows.length > 6) {
       var rest = rows.slice(5).reduce(function (t, r) { return t + r.v; }, 0);
       rows = rows.slice(0, 5).concat([{ name: T.other, v: rest }]);
+      warn('mergedIntoOther', { merged: d.rows.length - 5 });
     }
     var total = rows.reduce(function (t, r) { return t + r.v; }, 0);
     rows.forEach(function (r) { r.raw = r.v / total * 100; r.n = Math.floor(r.raw); });
@@ -491,11 +602,13 @@ var DOC = {};
   // ③ 子弹图：横轴是完成率，底下三段色带（<80%、80–100%、>100%），竖线是目标，没达标的条用红色
   function bullet(ctx, d, opt) {
     var a = frame(ctx, opt);
-    var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a), t: num(r.b) }; })
+    var all = d.rows.map(function (r) { return { name: r.name, v: num(r.a), t: num(r.b) }; })
       .filter(function (r) { return r.name && isFinite(r.v) && isFinite(r.t) && r.t > 0; });
-    rows.forEach(function (r) { r.rate = r.v / r.t; });
-    rows.sort(function (p, q) { return q.rate - p.rate; });
+    all.forEach(function (r) { r.rate = r.v / r.t; });
+    all.sort(function (p, q) { return q.rate - p.rate; });
+    var rows = clipRows(all, 12, 'bullet', 'top');
     if (!rows.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, all.length - rows.length, 'top');
 
     var maxRate = Math.max(1.2, Math.ceil(Math.max.apply(null, rows.map(function (r) { return r.rate; })) * 10) / 10);
 
@@ -562,6 +675,10 @@ var DOC = {};
       if (dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d) return { y: y, m: mo, d: d };
       return null;
     }
+    // 8 位纯数字：20250103。年份固定在前面，没有歧义
+    if (/^\d{8}$/.test(t)) return parseDate(t.slice(0, 4) + '-' + t.slice(4, 6) + '-' + t.slice(6, 8));
+    // 日/月/年 还是 月/日/年 分不清，不猜：3/5/2025 可能是 3 月 5 日，也可能是 5 月 3 日。
+    // 交给调用方提示用户转成 YYYY-MM-DD
     if (/^\d{5}(\.\d+)?$/.test(t) && +t > 20000 && +t < 80000) {
       var e = new Date(Date.UTC(1899, 11, 30) + Math.floor(+t) * 86400000);
       return { y: e.getUTCFullYear(), m: e.getUTCMonth() + 1, d: e.getUTCDate() };
@@ -591,7 +708,9 @@ var DOC = {};
     });
     var year = 0, most = 0;
     Object.keys(byYear).forEach(function (y) { if (byYear[y] > most) { most = byYear[y]; year = +y; } });
-    if (!year) return empty(ctx, a, opt);
+    // 有数据但一个日期都没认出来：说明是日期格式的问题，直接告诉用户改什么，别只写「没有可画的数据」
+    if (!year) return empty(ctx, a, opt, (d.rows || []).length ? T.badDate : '');
+    if (most < (d.rows || []).length) warn('partialDates', { kind: 'calendar', total: d.rows.length, kept: most });
 
     var lo = Infinity, hi = -Infinity;
     Object.keys(vals).forEach(function (k) {
@@ -687,7 +806,9 @@ var DOC = {};
     });
     var year = 0, most = 0;
     Object.keys(byYear).forEach(function (y) { if (byYear[y] > most) { most = byYear[y]; year = +y; } });
-    if (!year) return empty(ctx, a, opt);
+    // 有数据但一个日期都没认出来：说明是日期格式的问题，直接告诉用户改什么，别只写「没有可画的数据」
+    if (!year) return empty(ctx, a, opt, (d.rows || []).length ? T.badDate : '');
+    if (most < (d.rows || []).length) warn('partialDates', { kind: 'calendar', total: d.rows.length, kept: most });
 
     var lo = Infinity, hi = -Infinity, hiKey = '';
     Object.keys(vals).forEach(function (k) {
@@ -865,11 +986,15 @@ var DOC = {};
   }
 
   // 有多个系列时用：系列名 + 每个类别一组数
-  function seriesRows(d, maxS, maxRows) {
-    var names = (d.series && d.series.length ? d.series : [d.labelA || T.value]).slice(0, maxS);
-    var rows = d.rows.filter(function (r) { return r.name !== undefined && r.name !== ''; }).slice(0, maxRows)
+  // how = 'recent'：行数超了保留最后几行（按时间排的数据），否则保留前面
+  function seriesRows(d, maxS, maxRows, how) {
+    var allNames = d.series && d.series.length ? d.series : [d.labelA || T.value];
+    var names = allNames.slice(0, maxS);
+    var ok = d.rows.filter(function (r) { return r.name !== undefined && r.name !== ''; });
+    var picked = how === 'recent' ? ok.slice(Math.max(0, ok.length - maxRows)) : ok.slice(0, maxRows);
+    var rows = picked
       .map(function (r) { var v = vals(r); return { name: String(r.name), v: names.map(function (_, k) { return num(v[k]); }) }; });
-    return { names: names, rows: rows };
+    return { names: names, rows: rows, namesDropped: allNames.length - names.length };
   }
 
   /* ===== 多组数的条形 / 柱形：分组、堆积、100% 堆积 ===== */
@@ -887,9 +1012,13 @@ var DOC = {};
   // 色块上写字：浅色块用深字，深色块用白字
   function onColor(c) { return hex6(c) && luma(hex6(c)) > 0.62 ? C.ink : '#FFFFFF'; }
 
-  function multiRows(d) {
+  function multiRows(d, how) {
     var mode = d.stack === 'percent' ? 'pct' : d.stack ? 'stack' : 'group';
-    var sr = seriesRows(d, mode === 'group' ? 4 : 5, mode === 'group' ? 12 : 16);
+    var maxS = mode === 'group' ? 4 : 5, maxR = mode === 'group' ? 12 : 16;
+    var sr = seriesRows(d, maxS, maxR, how);
+    var total = d.rows.filter(function (r) { return r.name !== undefined && r.name !== ''; }).length;
+    if (total > sr.rows.length) warn('truncated', { kind: d.kind || 'bar', shown: sr.rows.length, dropped: total - sr.rows.length, how: how || 'top' });
+    if (sr.namesDropped) warn('seriesDropped', { kind: d.kind || 'bar', dropped: sr.namesDropped, shown: sr.names.length });
     sr.rows.forEach(function (r) {
       r.v = r.v.map(function (v) { return isFinite(v) && v > 0 ? v : 0; });
       r.t = r.v.reduce(function (s, v) { return s + v; }, 0);
@@ -897,6 +1026,7 @@ var DOC = {};
     });
     sr.rows = sr.rows.filter(function (r) { return r.t > 0; });
     sr.mode = mode;
+    sr.dropped = Math.max(0, total - sr.rows.length);
     return sr;
   }
 
@@ -904,6 +1034,7 @@ var DOC = {};
   function barMulti(ctx, d, opt) {
     var a = frame(ctx, opt), sr = multiRows(d), names = sr.names, rows = sr.rows, mode = sr.mode, unit = d.unit || '';
     if (!rows.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, sr.dropped, 'top');
     if (d.sort !== false) rows.sort(mode === 'pct' ? function (p, q) { return q.v[0] / q.t - p.v[0] / p.t; }
       : mode === 'group' ? function (p, q) { return q.v[q.v.length - 1] - p.v[p.v.length - 1]; } : function (p, q) { return q.t - p.t; });
     legend(ctx, names.map(function (n, k) { return { label: n, color: C.cats[k] }; }), a.x, a.y + u(14));
@@ -976,8 +1107,9 @@ var DOC = {};
 
   // 柱形图（竖向）多组数：按填的顺序画（适合时间）
   function columnMulti(ctx, d, opt) {
-    var a = frame(ctx, opt), sr = multiRows(d), names = sr.names, rows = sr.rows, mode = sr.mode, unit = d.unit || '';
+    var a = frame(ctx, opt), sr = multiRows(d, 'recent'), names = sr.names, rows = sr.rows, mode = sr.mode, unit = d.unit || '';
     if (!rows.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, sr.dropped, 'recent');
     legend(ctx, names.map(function (n, k) { return { label: n, color: C.cats[k] }; }), a.x, a.y + u(14));
     var max = mode === 'pct' ? 1 : Math.max.apply(null, rows.map(function (r) { return mode === 'group' ? Math.max.apply(null, r.v) : r.t; }));
     var tk = mode === 'pct' ? [0, 0.25, 0.5, 0.75, 1] : ticks(0, max, 5);
@@ -1065,10 +1197,12 @@ var DOC = {};
   function bar(ctx, d, opt) {
     if ((d.series && d.series.length > 1) || d.stack) return barMulti(ctx, d, opt);
     var a = frame(ctx, opt);
-    var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
+    var all = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
       .filter(function (r) { return r.name && isFinite(r.v); })
-      .sort(function (p, q) { return q.v - p.v; }).slice(0, 15);
+      .sort(function (p, q) { return q.v - p.v; });
+    var rows = clipRows(all, 15, 'bar', 'top');
     if (!rows.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, all.length - rows.length, 'top');
 
     var lo = Math.min(0, rows[rows.length - 1].v), hi = Math.max(0, rows[0].v);
     var unit = d.unit || '';
@@ -1109,9 +1243,11 @@ var DOC = {};
   function column(ctx, d, opt) {
     if ((d.series && d.series.length > 1) || d.stack) return columnMulti(ctx, d, opt);
     var a = frame(ctx, opt);
-    var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
-      .filter(function (r) { return r.name !== undefined && r.name !== '' && isFinite(r.v); }).slice(0, 24);
+    var all = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
+      .filter(function (r) { return r.name !== undefined && r.name !== '' && isFinite(r.v); });
+    var rows = clipRows(all, 24, 'column', 'recent');
     if (!rows.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, all.length - rows.length, 'recent');
 
     var vs = rows.map(function (r) { return r.v; });
     var tk = ticks(Math.min(0, Math.min.apply(null, vs)), Math.max(0, Math.max.apply(null, vs)), 5);
@@ -1144,10 +1280,16 @@ var DOC = {};
   // ⑦ 折线图：最多 4 条线，按填的顺序排；线的末端直接写系列名和最后一个数。只有一条线时下面铺一层浅色
   function line(ctx, d, opt) {
     var a = frame(ctx, opt);
-    var sr = seriesRows(d, 4, 60), names = sr.names, rows = sr.rows;
+    var total = (d.rows || []).filter(function (r) { return r.name !== undefined && r.name !== ''; }).length;
+    var sr = seriesRows(d, 4, 60, 'recent'), names = sr.names, rows = sr.rows;
+    if (total > rows.length) {
+      warn('truncated', { kind: 'line', shown: rows.length, dropped: total - rows.length, how: 'recent' });
+    }
+    if (sr.namesDropped) warn('seriesDropped', { kind: 'line', dropped: sr.namesDropped, shown: names.length });
     var all = [];
     rows.forEach(function (r) { r.v.forEach(function (v) { if (isFinite(v)) all.push(v); }); });
     if (!all.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, total - rows.length, 'recent');
 
     var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
     if (lo >= 0 && lo <= hi * 0.4) lo = 0;
@@ -1294,9 +1436,12 @@ var DOC = {};
   // ⑩ 瀑布图：第一行是起点（比如去年利润），中间每行是增减，最后一根柱子自动算出终点
   function waterfall(ctx, d, opt) {
     var a = frame(ctx, opt);
-    var rows = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
-      .filter(function (r) { return r.name && isFinite(r.v); }).slice(0, 14);
+    var all = d.rows.map(function (r) { return { name: r.name, v: num(r.a) }; })
+      .filter(function (r) { return r.name && isFinite(r.v); });
+    // 第一行是起点，必须留着；超了就砍掉中间的变化项
+    var rows = clipRows(all, 14, 'waterfall', 'keepFirst');
     if (!rows.length) return empty(ctx, a, opt);
+    a = clipBand(ctx, a, rows.length, all.length - rows.length, 'keepFirst');
 
     var cum = 0, bars = rows.map(function (r, i) {
       if (i === 0) { cum = r.v; return { name: r.name, y0: 0, y1: r.v, v: r.v, total: true }; }
@@ -1771,7 +1916,9 @@ var DOC = {};
     var sc = d.sort === false ? -1 : (typeof d.sort === 'number' ? d.sort : 0);
     if (sc >= 0 && sc < cols.length) rows.sort(function (p, q) { return (isFinite(q.v[sc]) ? q.v[sc] : -1e300) - (isFinite(p.v[sc]) ? p.v[sc] : -1e300); });
     var maxRows = Math.max(3, Math.floor((a.h - u(70)) / u(46)));
+    var before = rows.length;
     rows = rows.slice(0, Math.min(20, maxRows));
+    if (rows.length < before) warn('truncated', { kind: 'table', shown: rows.length, dropped: before - rows.length, how: 'top' });
     var barCol = d.bar === false ? -1 : (typeof d.bar === 'number' ? d.bar : 0);
     if (barCol >= 0 && (fmts[barCol] === 'delta' || fmts[barCol] === 'pct')) barCol = -1;
     var colMax = cols.map(function (_, k) { return Math.max.apply(null, rows.map(function (r) { return isFinite(r.v[k]) ? Math.abs(r.v[k]) : 0; })); });
@@ -1924,10 +2071,12 @@ var DOC = {};
   }
   function imageCards(ctx, d, opt) {
     var a = frame(ctx, opt);
-    var items = (d.rows || []).map(function (r) {
+    var okItems = (d.rows || []).map(function (r) {
       var src = typeof r.img === 'string' && /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(r.img.trim()) ? r.img.trim() : '';
       return { name: r.name == null ? '' : String(r.name), sub: r.sub == null ? '' : String(r.sub), a: num(r.a), b: num(r.b), src: src };
-    }).filter(function (x) { return x.name || isFinite(x.a); }).slice(0, 24);
+    }).filter(function (x) { return x.name || isFinite(x.a); });
+    var items = clipRows(okItems, 24, 'imageCards', 'top');
+    if (items.length < okItems.length) a = clipBand(ctx, a, items.length, okItems.length - items.length, 'top');
     if (!items.length) return empty(ctx, a, opt);
     var ranked = items.filter(function (x) { return isFinite(x.a); }).sort(function (x, y) { return y.a - x.a; });
     ranked.forEach(function (x, k) { x.rank = k + 1; });
@@ -2053,8 +2202,20 @@ var DOC = {};
     });
   }
 
-  function empty(ctx, a, opt) {
+  function empty(ctx, a, opt, msg) {
     ctx.fillStyle = C.ink2;
+    if (msg) {
+      // 两行：上面说原因，下面说怎么办
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = font(a.w > a.h ? 30 : 34, 700);
+      ctx.fillStyle = C.ink;
+      ctx.fillText(fit(ctx, msg, a.w * 0.86), a.x + a.w / 2, a.y + a.h / 2 - u(26));
+      ctx.fillStyle = C.ink2;
+      ctx.font = font(a.w > a.h ? 26 : 30, 400);
+      ctx.fillText(fit(ctx, opt.emptyText || T.empty, a.w * 0.86), a.x + a.w / 2, a.y + a.h / 2 + u(34));
+      return;
+    }
     ctx.font = font(34, 400);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -2067,12 +2228,18 @@ var DOC = {};
   var API = { dumbbell: dumbbell, waffle: waffle, bullet: bullet, calendar: calendar, calendarMonths: calendarMonths, imageCards: imageCards, tileMap: tileMap, scatter: scatter, table: table, radar: radar,
     bar: bar, column: column, line: line, donut: donut, stacked: stacked, waterfall: waterfall, kpi: kpi,
     dashboard: dashboard, dashboardHeight: dashboardHeight, palette: palette,
-    num: num, THEMES: THEMES, parseDate: parseDate, dateKey: dateKey };
-  // 每次画整张图前清空悬停记录（看板里的格子不清，整页一起记）
+    num: num, THEMES: THEMES, parseDate: parseDate, dateKey: dateKey,
+    takeWarnings: takeWarnings, scanDoc: scanDoc };
+  // 每次画整张图前清空悬停记录（看板里的格子不清，整页一起记），并扫一遍数据里的坏值
   Object.keys(API).forEach(function (k) {
     var f = API[k];
-    if (typeof f !== 'function' || k === 'num' || k === 'parseDate' || k === 'dateKey' || k === 'dashboardHeight' || k === 'palette') return;
-    API[k] = function (ctx, d, opt) { DEC = null; if (ctx && ctx.canvas && !(opt && opt.panel)) ctx.canvas.__hits = []; return f(ctx, d, opt); };
+    if (typeof f !== 'function' || k === 'num' || k === 'parseDate' || k === 'dateKey' || k === 'dashboardHeight' || k === 'palette' || k === 'takeWarnings' || k === 'scanDoc') return;
+    API[k] = function (ctx, d, opt) {
+      DEC = null;
+      scanDoc(k, d);
+      if (ctx && ctx.canvas && !(opt && opt.panel)) ctx.canvas.__hits = [];
+      return f(ctx, d, opt);
+    };
   });
   window.Charts = API;
 })();
@@ -2083,10 +2250,12 @@ var DOC = {};
     zh: { lead: '每张图有三种下载：3:4 适合手机，16:9 适合放进 PPT，「只下载图」是透明背景，可以放进任何模板。', themes: '配色：', each: '按各图设置',
       latte: '燕麦拿铁', mist: '雾霾蓝', navy: '深夜蓝', custom: '自定义', d34: '下载 3:4 PNG', d169: '下载 16:9 PNG', dlong: '下载手机长图 PNG',
       dbare: '只下载图（透明背景 PNG）', empty: '没有可画的数据', findings: '主要发现', notes: '数据说明', print: '打印 / 存成 PDF',
-      hint: '← → 翻页 · F 全屏 · 打印可存成 PDF', summary: '主要发现', about: '数据说明' },
+      hint: '← → 翻页 · F 全屏 · 打印可存成 PDF', summary: '主要发现', about: '数据说明',
+      data: '显示数据表', chart: '图表', series: '系列', value: '数值', more: '另有 {n} 行', nameCol: '名称', dateCol: '日期' },
     en: { lead: 'Each chart downloads three ways: 3:4 for phones, 16:9 for slides, and "chart only" with a transparent background for any template.', themes: 'Theme: ',
       each: 'As set per chart', latte: 'Oat Latte', mist: 'Mist Blue', navy: 'Midnight Navy', custom: 'Custom', d34: 'Download 3:4 PNG',
       d169: 'Download 16:9 PNG', dlong: 'Download phone (long) PNG', dbare: 'Chart only (transparent PNG)', empty: 'No data to draw',
+      data: 'Show data table', chart: 'Chart', series: 'Series', value: 'Value', more: '{n} more rows', nameCol: 'Name', dateCol: 'Date',
       findings: 'Key findings', notes: 'About the data', print: 'Print / save as PDF', hint: '← → to move · F full screen · print to save as PDF',
       summary: 'Key findings', about: 'About the data' }
   }[LANG === 'en' ? 'en' : 'zh'];
@@ -2123,7 +2292,25 @@ var DOC = {};
     drawn.push(item);
     draw(item);
     hover(cv);
+    // 无障碍：屏幕阅读器读这一句，而不是一个空的 canvas
+    cv.setAttribute('role', 'img');
+    cv.setAttribute('aria-label', chartSummary(c));
     return cv;
+  }
+  // 一句话摘要：标题 + 前几行的数值。数字很多时不展开，避免读屏念五分钟
+  function chartSummary(c) {
+    var head = [c.title, c.subtitle].filter(Boolean).join('，') || (UI.chart || 'Chart');
+    var rows = c.rows || c.panels;
+    if (!rows || !rows.length || c.kind === 'dashboard') return head;
+    var parts = rows.slice(0, 5).map(function (r) {
+      if (r == null) return '';
+      var name = r.name != null ? String(r.name) : '';
+      if (Array.isArray(r.v)) return name + ' ' + r.v.filter(function (x) { return x !== null && x !== undefined; }).join('/');
+      if (r.a !== undefined) return name + ' ' + r.a + (r.b !== undefined ? ' → ' + r.b : '');
+      return name;
+    }).filter(Boolean);
+    var tail = rows.length > 5 ? '，' + (UI.more || '{n} more rows').replace('{n}', rows.length - 5) : '';
+    return head + '：' + parts.join('；') + tail;
   }
   // hover tooltip: shows the name and values of the mark under the mouse (from canvas.__hits)
   var tip = null;
@@ -2157,6 +2344,20 @@ var DOC = {};
     };
     cv.addEventListener('mousemove', show);
     cv.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+    // 触屏：点一下显示同样的提示，点别处收起。手机上 3:4 的图就靠这个看具体数
+    cv.addEventListener('pointerdown', function (ev) {
+      if (ev.pointerType === 'mouse') return;
+      show(ev);
+      ev.stopPropagation();      // 别让文档级的「点别处收起」把它立刻关掉
+    });
+    if (!hover.closeBound) {
+      hover.closeBound = true;
+      document.addEventListener('pointerdown', function (ev) {
+        if (ev.pointerType === 'mouse') return;
+        if (ev.target && ev.target.tagName === 'CANVAS') return;
+        if (tip) tip.style.display = 'none';
+      });
+    }
   }
   // canvas height for chart-only (bare) drawing: shorter for KPI cards, a one-row calendar shorter still
   function bareSize(c, w) {
@@ -2207,6 +2408,103 @@ var DOC = {};
     return l;
   }
 
+  // 「显示数据表」：原生 <details>，默认收起，展开后是图表背后的原始数字。
+  // 报告发出去以后，读者能自己查数；屏幕阅读器也有内容可读。
+  var DATA_MAX = 200;
+  function dataTable(c) {
+    var d = el('details', 'dt');
+    d.appendChild(el('summary', '', UI.data));
+    var wrapD = el('div', 'dtwrap');
+    var rows = c.rows || [];
+    if (c.kind === 'dashboard' && c.panels) {
+      c.panels.forEach(function (p, i) {
+        var h = el('h4', '', (i + 1) + '. ' + (p.title || p.kind));
+        wrapD.appendChild(h);
+        wrapD.appendChild(tableOf(p));
+      });
+    } else {
+      wrapD.appendChild(tableOf(c));
+    }
+    d.appendChild(wrapD);
+    return d;
+  }
+  function tableOf(c) {
+    var t = el('table', 'dtab');
+    var rows = (c.rows || []).slice(0, DATA_MAX);
+    var series = c.series || [];
+    var head = el('tr');
+    head.appendChild(el('th', '', c.kind === 'calendar' || c.kind === 'calendarMonths' ? (UI.dateCol || 'Date') : (UI.nameCol || 'Name')));
+    if (c.kind === 'table') (c.columns || []).forEach(function (col) { head.appendChild(el('th', '', col)); });
+    else if (series.length) series.forEach(function (s) { head.appendChild(el('th', '', s)); });
+    else if (c.kind === 'kpi' || c.kind === 'dumbbell' || c.kind === 'bullet') {
+      head.appendChild(el('th', '', c.labelA || 'A'));
+      head.appendChild(el('th', '', c.labelB || 'B'));
+    } else head.appendChild(el('th', '', c.unit ? (UI.value || 'Value') + ' (' + c.unit + ')' : (UI.value || 'Value')));
+    var thead = el('thead'); thead.appendChild(head); t.appendChild(thead);
+    var tb = el('tbody');
+    rows.forEach(function (r) {
+      var tr = el('tr');
+      tr.appendChild(el('th', '', r.name == null ? '' : String(r.name)));
+      var vals;
+      if (c.kind === 'table') vals = Array.isArray(r.v) ? r.v : [r.a, r.b, r.c, r.d, r.e];
+      else if (series.length) vals = Array.isArray(r.v) ? r.v : [r.a];
+      else if (c.kind === 'kpi' || c.kind === 'dumbbell' || c.kind === 'bullet') vals = [r.a, r.b];
+      else vals = [r.a];
+      vals.forEach(function (v) { tr.appendChild(el('td', '', v === null || v === undefined ? '' : String(v))); });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    var box = el('div');
+    box.appendChild(t);
+    if ((c.rows || []).length > DATA_MAX) box.appendChild(el('p', 'dtmore', (UI.more || '{n} more rows').replace('{n}', c.rows.length - DATA_MAX)));
+    return box;
+  }
+
+  // 页面里出现过的提醒（截断、读不懂的值），去重后显示成一条
+  function warningBar() {
+    var ws = Charts.takeWarnings();
+    if (!ws.length) return null;
+    // 同一张图、同一种问题只留一条，但截断的行数要加起来
+    var map = {}, order = [];
+    ws.forEach(function (w) {
+      var key = w.code + '|' + (w.kind || '');
+      if (!map[key]) { map[key] = {}; for (var k in w) map[key][k] = w[k]; order.push(key); }
+      else if (w.code === 'truncated') map[key].dropped += w.dropped;
+      else if (w.code === 'badNumber' || w.code === 'badDate') map[key].count = Math.max(map[key].count, w.count);
+    });
+    var box = el('aside', 'warn no-print');
+    box.appendChild(el('b', '', LANG === 'en' ? 'Data notes' : '数据提醒'));
+    var ul = el('ul');
+    order.forEach(function (key) { ul.appendChild(el('li', '', warnText(map[key]))); });
+    box.appendChild(ul);
+    return box;
+  }
+  function warnText(w) {
+    var zh = LANG !== 'en';
+    if (w.code === 'badNumber') {
+      var ex = (w.examples || []).map(function (e) { return (w.kind === 'table' ? '' : '#' + e.row + ' ') + '“' + e.value + '”'; }).join('、');
+      return zh ? '有 ' + w.count + ' 个值没认出来，已跳过：' + ex + '（带 $ / k / % 的值请先换成纯数字）'
+                : w.count + ' values could not be read and were skipped: ' + ex;
+    }
+    if (w.code === 'badDate') {
+      var ex2 = (w.examples || []).map(function (e) { return '“' + e.value + '”'; }).join('、');
+      return zh ? '有 ' + w.count + ' 个日期没认出来：' + ex2 + '。请转成 YYYY-MM-DD（例如 2025-03-05）'
+                : w.count + ' dates could not be read: ' + ex2 + '. Use YYYY-MM-DD.';
+    }
+    if (w.code === 'truncated') {
+      var how = w.how === 'recent' ? (zh ? '最新的 ' : 'the last ') : (zh ? '前 ' : 'the first ');
+      return zh ? w.kind + ' 只画了 ' + how + w.shown + ' 行，另有 ' + w.dropped + ' 行没显示'
+                : w.kind + ': showing ' + how + w.shown + ' rows; ' + w.dropped + ' not shown';
+    }
+    if (w.code === 'seriesDropped') {
+      return zh ? w.kind + ' 只画了前 ' + w.shown + ' 个系列，另有 ' + w.dropped + ' 个没显示'
+                : w.kind + ': showing ' + w.shown + ' series; ' + w.dropped + ' not shown';
+    }
+    if (w.code === 'mergedIntoOther') return zh ? '占比图把最小的 ' + w.merged + ' 类合并成了「其他」' : w.merged + ' small categories were merged into "Other"';
+    if (w.code === 'partialDates') return zh ? '日历图只画了一个年份：' + w.kept + ' 行（共 ' + w.total + ' 行）' : 'Calendar draws one year: ' + w.kept + ' of ' + w.total + ' rows';
+    return w.code;
+  }
+
   // ---------- charts: download each chart ----------
   function gallery() {
     var wrap = el('main', 'gallery');
@@ -2235,8 +2533,10 @@ var DOC = {};
         pair.appendChild(box);
       });
       fig.appendChild(pair);
+      fig.appendChild(dataTable(c));
       wrap.appendChild(fig);
     });
+    var wb = warningBar(); if (wb) wrap.appendChild(wb);
     app.appendChild(wrap);
   }
 
@@ -2290,7 +2590,10 @@ var DOC = {};
         var tx = el('div', 'sec-text');
         if (c.text) tx.appendChild(el('p', '', c.text));
         if (c.points && c.points.length) tx.appendChild(list('ul', '', c.points));
+        if (Charts[c.kind] && c.kind !== 'palette') tx.appendChild(dataTable(c));
         body.appendChild(tx);
+      } else if (Charts[c.kind] && c.kind !== 'palette') {
+        body.appendChild(dataTable(c));
       }
       sec.appendChild(body);
       grid.appendChild(sec);
@@ -2302,6 +2605,7 @@ var DOC = {};
       n.appendChild(list('ul', '', DOC.notes));
       wrap.appendChild(n);
     }
+    var wb = warningBar(); if (wb) wrap.appendChild(wb);
     if (DOC.sign) wrap.appendChild(el('div', 'foot', DOC.sign));
     app.appendChild(wrap);
   }
