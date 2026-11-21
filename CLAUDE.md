@@ -43,6 +43,8 @@ Three output modes: `charts` (gallery of downloadable PNG sizes), `report` (long
 - **Themes** are `THEMES.latte` (default), `THEMES.mist`, `THEMES.navy` (dark), plus a custom-colors object path in `customTheme()` that derives `cats` by comparing supplied colors. `THEMES.forest` is a backward-compat alias for `navy` — keep it.
 - **Scaling**: the drawing code is authored against a 1080×1440 base; `setup(ctx)` derives `s` from the actual canvas size, and `u(n)` applies it. Use `u()` for every dimension and `font()` for every font, or charts break at 16:9.
 - **Files are UTF-8 with CRLF line endings** (git `core.autocrlf=true` on Windows). Don't introduce LF-only rewrites or a BOM — embedded `data:` images and the template copy rely on byte-level integrity.
+- **Printing uses named pages.** `@page` is document-wide and cannot be scoped by selector, so a slides rule (`size: 1920px 1080px`) written after the report rule silently overrode A4 and produced 508×286mm PDFs. The stylesheet therefore defines `@page report` and `@page deck` and assigns them with `body { page: report }` / `body.deck { page: deck }`. Keep any new print rule inside one of those.
+- **Report layout: prose leads, charts support it.** Side-by-side sections are `1.15fr : 1fr` so text gets at least half the width, and side charts are drawn flatter (ratio 0.52) with `fontScale` 1.35 to compensate for the narrower column. Measuring the trade-off needs the real page: a narrower chart with no `fontScale` bump drops in-chart labels from 13.3px to 11.7px on screen.
 - SKILL.md is prose addressed to an AI agent. Changes there change behaviour as much as code changes do: chart-selection rules (§2), the "never invent numbers" rules (§1), and the pre-delivery checklist (§7) are the guardrails that make output trustworthy. Don't weaken them for brevity.
 - README and README.zh-CN are parallel documents; update both. The feature list must match what the chart code actually supports (it enumerates the 17 chart types).
 
@@ -52,9 +54,27 @@ There is no test command. Verify in a real browser:
 
 ```bash
 pip install playwright && playwright install chromium   # only if not already installed
+PYTHONIOENCODING=utf-8 python tools/check_all.py        # all three examples: blank canvases, aria, data tables, PDF page size
+PYTHONIOENCODING=utf-8 python tools/verify_examples.py  # example numbers: KPI vs charts vs prose
 ```
 
+`PYTHONIOENCODING=utf-8` matters on Windows: the scripts print Chinese and the console defaults to GBK.
+
 Load a page via `file://`, wait ~1s for canvas drawing, and check every chart/slide for cut-off or crowded text; export PNGs with `canvas.toDataURL('image/png')` (SKILL.md §5 has the exact Playwright snippet). PDFs may only be produced through a browser (`emulate_media(media="print")` + `pg.pdf(...)`); tools that don't execute JavaScript (WeasyPrint, wkhtmltopdf, pandoc, LibreOffice) yield blank charts and are explicitly disallowed by the skill.
+
+### Example pages are generated, never hand-edited
+
+The three examples exist to prove the tool works, so their numbers must reconcile — an example whose KPI says $215.3k while its monthly chart adds to $227.9k teaches the wrong thing.
+
+```bash
+python tools/gen_example_data.py   # recompute report/slides DOC from one data source, with assertions
+python tools/rebuild_ex.py         # re-derive all three pages from template.html, keeping <title> and DOC
+python tools/verify_examples.py    # check the numbers actually reconcile
+```
+
+Run them in that order: `rebuild_ex.py` copies the template so it must come after any template edit, and `gen_example_data.py` rewrites only the DOC inside the already-rebuilt page. `verify_examples.py` reads the DOC and checks every percentage in the prose against the data, so it fails when text and charts drift apart.
+
+`demo.html` is hand-written (it is a catalogue of every chart type), so `gen_example_data.py` does not touch it.
 
 ## Git
 

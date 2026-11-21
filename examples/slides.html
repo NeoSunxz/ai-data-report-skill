@@ -45,7 +45,8 @@
   .secs .sec { grid-column: 1 / -1; margin: 0; }
   .secs .sec.half { grid-column: auto; }
   @media (min-width: 1000px) {
-    .sec.side .sec-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 28px; align-items: center; }
+    /* 报告里文字和结论是主角，图是佐证：文字栏占一半，图不再吃掉三分之二宽度 */
+    .sec.side .sec-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; align-items: start; }
     .sec.side .sec-text > :first-child { margin-top: 0; }
   }
   @media (max-width: 999px) { .secs .sec.half { grid-column: 1 / -1; } }
@@ -72,9 +73,11 @@
   .warn { background: var(--card); border-left: 4px solid #b9553f; border-radius: 8px; padding: 12px 16px; margin: 20px 0; font-size: 13px; color: var(--ink); }
   .warn b { display: block; margin-bottom: 6px; }
   .warn ul { margin: 0; padding-left: 18px; line-height: 1.6; }
+  /* 打印：报告和图表页是 A4。@page 是整份文档共用的，不能用元素选择器限定，
+     所以这里用「命名页」：body 用 report，幻灯片用 deck（slides 那段），各自不会互相覆盖。 */
+  @page report { size: A4; margin: 14mm; }
   @media print {
-    @page { size: A4; margin: 14mm; }
-    body { background: #fff; }
+    body { page: report; background: #fff; }
     .no-print { display: none !important; }
     .report { max-width: none; padding: 0; }
     .secs { display: block; }
@@ -113,9 +116,9 @@
   .progress { position: fixed; left: 0; bottom: 0; height: 4px; background: var(--acc); transition: width .3s; z-index: 3; }
   .hint { position: fixed; right: 16px; top: 12px; font-size: 13px; color: #999; z-index: 3; }
   @media (prefers-reduced-motion: reduce) { .slide, .progress { transition: none; } }
+  @page deck { size: 1920px 1080px; margin: 0; }
   @media print {
-    @page { size: 1920px 1080px; margin: 0; }
-    body.deck { overflow: visible; background: var(--bg); }
+    body.deck { page: deck; overflow: visible; background: var(--bg); }
     .stage-wrap { position: static; display: block; }
     .stage { transform: none !important; width: 1920px; height: auto; }
     .slide { position: relative; visibility: visible; opacity: 1; page-break-after: always; break-after: page; }
@@ -139,40 +142,40 @@ var DOC = {
  "date": "2026-01-15",
  "lang": "en",
  "summary": [
-  "Sales grew 5.2% to $215.3k, driven by more cups sold",
-  "Delivery more than doubled and is catching up with dine-in",
+  "Sales grew 5.0% to $225.3k from 7.2% more cups sold",
+  "Delivery went from 0.9k to 2.2k cups a month over the year",
   "December was the best month; Tech Park is the top store"
  ],
  "notes": [
   "Made-up coffee shop data for 6 stores, 2025 vs 2024",
-  "Sales are summed by month and by store from daily sales",
-  "Shares are rounded so they add up to 100%"
+  "Sales are summed by month, by store and by category; all three add up to $225.3k",
+  "Average price per cup is sales divided by cups sold, not average order value",
+  "Shares are rounded so they add up to 100%%"
  ],
- "mode": "slides",
- "kicker": "Annual review",
+ "mode": "report",
  "sections": [
   {
    "kind": "kpi",
-   "title": "Sales grew 5.2%, but the average ticket fell",
+   "title": "Sales grew 5.0%, but the average price per cup fell",
    "subtitle": "2025 vs 2024",
    "labelB": "vs last year",
    "rows": [
     {
      "name": "Sales ($)",
-     "a": 215.3,
-     "b": 204.6,
+     "a": 225.3,
+     "b": 214.6,
      "unit": "k"
     },
     {
      "name": "Cups sold",
-     "a": 61.8,
-     "b": 57.2,
+     "a": 65.2,
+     "b": 60.8,
      "unit": "k"
     },
     {
-     "name": "Average ticket ($)",
-     "a": 34.8,
-     "b": 35.8,
+     "name": "Avg price / cup ($)",
+     "a": 3.46,
+     "b": 3.53,
      "unit": ""
     },
     {
@@ -183,8 +186,8 @@ var DOC = {
     }
    ],
    "points": [
-    "More cups sold (+8.0%) did the work",
-    "Average ticket dropped from $35.8 to $34.8",
+    "Cups sold rose 7.2%, more than sales",
+    "Average price per cup fell from $3.53 to $3.46",
     "Repeat rate up 3.4 points"
    ]
   },
@@ -240,13 +243,13 @@ var DOC = {
     },
     {
      "name": "Dec",
-     "a": 24.0
+     "a": 21.4
     }
    ],
    "points": [
-    "$24.0k in December, the highest of the year",
-    "February was the low point at $12.1k",
-    "Sales rose steadily from March to August"
+    "$21.4k in December, the highest of the year",
+    "Feb was the low point at $12.1k",
+    "The 12 months add up to $225.3k"
    ]
   },
   {
@@ -255,33 +258,33 @@ var DOC = {
    "subtitle": "2025 sales by store, $ thousands",
    "rows": [
     {
-     "name": "Main St",
-     "a": 33.6
+     "name": "Tech Park",
+     "a": 48.4
     },
     {
      "name": "Riverside",
-     "a": 45.7
-    },
-    {
-     "name": "Tech Park",
-     "a": 46.9
-    },
-    {
-     "name": "Campus",
-     "a": 25.5
-    },
-    {
-     "name": "Old Town",
-     "a": 26.3
+     "a": 47.1
     },
     {
      "name": "Airport",
-     "a": 37.3
+     "a": 38.5
+    },
+    {
+     "name": "Main St",
+     "a": 34.9
+    },
+    {
+     "name": "Campus",
+     "a": 29.1
+    },
+    {
+     "name": "Old Town",
+     "a": 27.3
     }
    ],
    "points": [
     "The top 2 stores bring in 42% of sales",
-    "Campus and Old Town are each under $27k"
+    "All 6 stores add up to $225.3k"
    ]
   },
   {
@@ -290,120 +293,133 @@ var DOC = {
    "subtitle": "Cups per month, thousands",
    "series": [
     "Dine-in",
-    "Delivery"
+    "Delivery",
+    "Pickup"
    ],
    "rows": [
     {
      "name": "Jan",
      "v": [
-      21.4,
-      9.8
+      2.1,
+      0.9,
+      1.4
      ]
     },
     {
      "name": "Feb",
      "v": [
-      17.9,
-      9.1
+      1.3,
+      0.7,
+      1.5
      ]
     },
     {
      "name": "Mar",
      "v": [
-      22.6,
-      11.5
+      2.1,
+      1.2,
+      1.6
      ]
     },
     {
      "name": "Apr",
      "v": [
-      22.1,
-      12.8
+      2.2,
+      1.3,
+      1.6
      ]
     },
     {
      "name": "May",
      "v": [
-      23.0,
-      14.2
+      2.5,
+      1.4,
+      1.6
      ]
     },
     {
      "name": "Jun",
      "v": [
-      22.4,
-      16.0
+      2.6,
+      1.7,
+      1.6
      ]
     },
     {
      "name": "Jul",
      "v": [
-      23.8,
-      17.9
+      2.8,
+      1.9,
+      1.8
      ]
     },
     {
      "name": "Aug",
      "v": [
-      24.1,
-      18.6
+      2.8,
+      2.0,
+      1.9
      ]
     },
     {
      "name": "Sep",
      "v": [
-      22.0,
-      17.4
+      2.3,
+      1.8,
+      1.6
      ]
     },
     {
      "name": "Oct",
      "v": [
-      21.5,
-      17.8
+      2.1,
+      1.7,
+      1.5
      ]
     },
     {
      "name": "Nov",
      "v": [
-      21.0,
-      18.5
+      2.2,
+      1.8,
+      1.6
      ]
     },
     {
      "name": "Dec",
      "v": [
-      23.2,
-      20.6
+      2.3,
+      2.2,
+      1.6
      ]
     }
    ],
    "points": [
-    "Delivery cups more than doubled: 9.8k to 20.6k",
-    "Dine-in stayed flat at around 22k a month"
+    "Delivery cups rose from 0.9k to 2.2k a month",
+    "Dine-in fell from 48% to 38% of cups sold"
    ]
   },
   {
    "kind": "donut",
-   "title": "Coffee is three quarters of sales",
+   "title": "Coffee is about seven tenths of sales",
    "subtitle": "2025 sales by category",
    "unit": "k",
    "rows": [
     {
      "name": "Coffee",
-     "a": 161.2
+     "a": 158.4
     },
     {
      "name": "Tea",
-     "a": 26.9
+     "a": 28.2
     },
     {
      "name": "Bakery",
-     "a": 17.4
+     "a": 20.7
     },
     {
      "name": "Desserts",
-     "a": 9.8
+     "a": 18.0
     }
    ]
   },
@@ -419,7 +435,7 @@ var DOC = {
     },
     {
      "name": "Sales up",
-     "a": 12.6
+     "a": 10.7
     },
     {
      "name": "Beans",
@@ -443,9 +459,9 @@ var DOC = {
     }
    ],
    "points": [
-    "Higher sales added $12.6k",
+    "Higher sales added $10.7k",
     "Beans, rent, staff and delivery fees took away $12.2k",
-    "Profit ended at $32.1k, up $3.6k"
+    "Profit ended at $30.2k, up $1.7k"
    ]
   }
  ]
@@ -2598,14 +2614,16 @@ var DOC = {
   function draw(item) {
     var c = item.c, k = c.kind;
     if (!Charts[k] || k === 'palette') return;
+    // 图在页面上占得越窄，字号要放得越大，缩到列宽后才看得清。幻灯片本来就放大了（1.3）。
+    var fs = MODE === 'slides' ? 1.3 : (item.fs || 1);
     Charts[k](item.cv.getContext('2d'), c, { title: item.bare ? '' : c.title, subtitle: item.bare ? '' : c.subtitle,
-      sign: item.bare ? false : (c.sign || DOC.sign || false), bare: !!item.bare, fontScale: MODE === 'slides' ? 1.3 : 1,
+      sign: item.bare ? false : (c.sign || DOC.sign || false), bare: !!item.bare, fontScale: fs,
       theme: (MODE === 'charts' ? theme || c.theme : theme) || 'latte', lang: c.lang || LANG, emptyText: UI.empty });
   }
-  function canvas(c, w, h, bare, cls) {
+  function canvas(c, w, h, bare, cls, fs) {
     var cv = el('canvas', cls);
     cv.width = w; cv.height = h;
-    var item = { c: c, cv: cv, bare: bare };
+    var item = { c: c, cv: cv, bare: bare, fs: fs || 1 };
     drawn.push(item);
     draw(item);
     hover(cv);
@@ -2680,9 +2698,10 @@ var DOC = {
   function bareSize(c, w) {
     return [w, Math.round(w * (c.kind === 'kpi' ? 0.36 : c.kind === 'calendar' ? 0.26 : c.kind === 'calendarMonths' ? 0.62 : 0.5625))];
   }
-  // report charts: flatter than 16:9 so one fits on a wide screen; row-based charts (bar, dumbbell, bullet, table, image cards) grow with the number of rows
+  // 报告里的图：比 16:9 扁一点，一屏能多放几节；行数多的图（条形、哑铃、子弹、表格、图片卡）按行数变高。
+  // 侧栏的图更扁（0.52，约 2:1）：报告里图是佐证，不该占掉半屏。
   function reportSize(c, w, layout) {
-    var n = (c.rows || []).length, k = c.kind, r = layout === 'full' || !layout ? 0.45 : 0.62;
+    var n = (c.rows || []).length, k = c.kind, r = layout === 'full' || !layout ? 0.45 : 0.52;
     var multi = (c.series || []).length > 1 && !c.stack;
     if (k === 'kpi') r = n > 4 ? 0.36 : 0.22;
     else if (k === 'calendar') r = 0.26;
@@ -2691,6 +2710,7 @@ var DOC = {
     else if (k === 'imageCards') r = 0.32 * Math.ceil(n / 5);
     else if (k === 'table') r = 0.1 + (layout === 'full' || !layout ? 0.034 : 0.05) * n;
     else if (k === 'dumbbell' || k === 'bullet' || (k === 'bar' && !c.stack)) r = 0.12 + 0.048 * n * (k === 'bar' && multi ? 1.6 : 1);
+    // 侧栏的图更窄，字号要补回来，不然缩到列宽后字太小（原来图占 1.7fr，现在 1.15fr）
     if (layout === 'side' || layout === 'half') r = r * (r === 0.62 ? 1 : 1.3);
     var hi = layout === 'side' || layout === 'half' ? 1.05 : 0.9;
     return [w, Math.round(w * Math.max(k === 'kpi' ? 0.2 : 0.26, Math.min(hi, Math.max(k === 'kpi' || k === 'calendar' ? 0 : 0.4, r))))];
@@ -2897,7 +2917,8 @@ var DOC = {
       if (Charts[c.kind] && c.kind !== 'palette') {
         var dash = c.kind === 'dashboard';
         var wh = dash ? [1920, 1080] : reportSize(c, layout === 'full' ? 2000 : 1300, layout);
-        var cv = canvas(c, wh[0], wh[1], !dash);
+        // 侧栏的图只占约一半宽度，字号补 1.35 倍，缩到列宽后才不会太小
+        var cv = canvas(c, wh[0], wh[1], !dash, '', layout === 'side' ? 1.35 : 1);
         cv.id = 'chart-' + (i + 1);
         var box = el('div', 'sec-chart');
         box.appendChild(cv);
